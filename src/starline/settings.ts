@@ -1,10 +1,10 @@
 import { API_VERSION, type ApiVersion } from "./constants";
-import { StarLineDeviceApi } from "./devices";
+import { StarLineUserApi } from "./user";
 import { deviceUrl } from "./urls";
 
 import type { DeviceSettingsResponse } from "../types/starline";
 
-export class StarLineSettingsApi extends StarLineDeviceApi {
+export class StarLineSettingsApi extends StarLineUserApi {
     putComfortOptions<T = unknown>(deviceId: string, body: unknown) {
         return this.postSettings<T>(deviceId, "put_comfort_options", body);
     }

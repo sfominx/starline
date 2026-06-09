@@ -22,22 +22,19 @@ function DeviceDetails({ item }: DeviceDetailsProps) {
     const markdown = [
         `# ${title}`,
         markdownSection("State", [
-            ["Armed", statusLabel(item.car_state.arm, "В охране", "Снято с охраны")],
-            ["Alarm", statusLabel(item.car_state.alarm, "Тревога", "Нет тревоги")],
-            ["Engine", statusLabel(item.car_state.run, "Запущен", "Остановлен")],
+            ["Armed", statusLabel(item.car_state.arm, "Armed", "Disarmed")],
+            ["Alarm", statusLabel(item.car_state.alarm, "Alarm", "No alarm")],
+            ["Engine", statusLabel(item.car_state.run, "Running", "Stopped")],
             ["Ignition", enabledDisabledLabel(item.car_state.ign)],
             ["Service mode", enabledDisabledLabel(item.car_state.valet)],
             ["Webasto", enabledDisabledLabel(item.car_state.webasto)],
-            [
-                "Hands/free",
-                item.functions?.includes("hfree") === true ? "Поддерживается" : EMPTY_VALUE,
-            ],
+            ["Hands free", item.functions?.includes("hfree") === true ? "Supported" : EMPTY_VALUE],
         ]),
         markdownSection("Sensors", [
             ["Door", openClosedLabel(item.car_state.door)],
             ["Hood", openClosedLabel(item.car_state.hood)],
             ["Trunk", openClosedLabel(item.car_state.trunk)],
-            ["Handbrake", statusLabel(item.car_state.hbrake, "Затянут", "Отпущен")],
+            ["Handbrake", statusLabel(item.car_state.hbrake, "Engaged", "Released")],
             ["Shock sensor bypass", enabledDisabledLabel(item.car_state.shock_bpass)],
             ["Tilt sensor bypass", enabledDisabledLabel(item.car_state.tilt_bpass)],
             ["Additional sensor bypass", enabledDisabledLabel(item.car_state.add_sens_bpass)],

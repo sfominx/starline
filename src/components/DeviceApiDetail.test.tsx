@@ -64,4 +64,29 @@ describe("DeviceApiDetail", () => {
         expect(detail.props.markdown).toContain("| Command | Title |");
         expect(showToast).not.toHaveBeenCalled();
     });
+
+    it("renders an empty event library table when the API omits descriptions", async () => {
+        jest.spyOn(StarLine.prototype, "getEventLibrary").mockResolvedValue({
+            code: 200,
+            codestring: "OK",
+        });
+        let renderer: ReactTestRenderer | undefined;
+
+        await act(async () => {
+            renderer = create(
+                <StarLineProvider>
+                    <DeviceApiDetail item={item} kind="eventLibrary" title="Event Library" />
+                </StarLineProvider>,
+            );
+            await flushPromises();
+        });
+
+        if (renderer === undefined) {
+            throw new Error("Renderer was not created");
+        }
+
+        const detail = renderer.root.findByType("Detail");
+        expect(detail.props.markdown).toContain("| Code | Group | Description |");
+        expect(showToast).not.toHaveBeenCalled();
+    });
 });

@@ -13,8 +13,8 @@ import { useSelectedDeviceItem } from "../context/deviceItem";
 import type { DeviceActionKey, DeviceCommandConfig } from "../../starline/commandConfig";
 import type { CarStatus, Item } from "../../types/devices";
 
-const updateArmState = (target: Item, result: unknown) => {
-    const isArmed = (result as CarStatus).arm === "1";
+const updateArmState = (target: Item, result: CarStatus) => {
+    const isArmed = result.arm === "1";
     return (device: Item) =>
         device.device_id === target.device_id
             ? { ...device, car_state: { ...device.car_state, arm: isArmed } }
@@ -61,7 +61,7 @@ function DeviceCommandAction(config: DeviceCommandConfig) {
         }
 
         devicesContext.updateState(({ devices }) => ({
-            devices: devices.map(updateArmState(item, result)),
+            devices: devices.map(updateArmState(item, result as CarStatus)),
             isLoading: false,
         }));
     };

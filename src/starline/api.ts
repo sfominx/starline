@@ -1,3 +1,1 @@
-import { StarLineSettingsApi } from "./settings";
-
-export class StarLine extends StarLineSettingsApi {}
+export { StarLineSettingsApi as StarLine } from "./settings";

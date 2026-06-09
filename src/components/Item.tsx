@@ -13,12 +13,15 @@ type DevicesItemProps = {
 
 function DevicesItem({ item }: DevicesItemProps) {
     const accessories = useItemAccessories(item);
+    const engineStatus = item.car_state.run ? "Engine started" : "Engine stopped";
+    const subtitle = `${engineStatus}, Inside temp: ${item.ctemp}°C / Engine temp: ${item.etemp}°C`;
+
     return (
         <DevicesItemContext.Provider value={item}>
             <List.Item
                 id={item.device_id.toString()}
                 title={deviceTitle(item)}
-                subtitle={`${item.car_state.run ? "Engine started" : "Engine stopped"}, Inside temp: ${item.ctemp}°C / Engine temp: ${item.etemp}°C`}
+                subtitle={subtitle}
                 actions={<DevicesItemActionPanel />}
                 accessories={accessories}
             />

@@ -1,5 +1,6 @@
-import { Action, ActionPanel, Form, List, Toast, showToast } from "@raycast/api";
+import { Action, ActionPanel, Form, Icon, List, Toast, showToast } from "@raycast/api";
 
+import AccountActions from "./components/AccountActions";
 import ClearAuthCacheAction from "./components/actions/ClearAuthCache";
 import DevicesItem from "./components/Item";
 import { DevicesProvider, useDevicesContext } from "./context/devices";
@@ -51,6 +52,18 @@ function CaptchaForm({ captchaImg, captchaSid }: { captchaImg: string; captchaSi
     );
 }
 
+function AccountActionPanel({ reloadDevices }: { reloadDevices: () => Promise<void> }) {
+    return (
+        <ActionPanel>
+            <ActionPanel.Section>
+                <Action title="Reload Devices" onAction={reloadDevices} />
+                <ClearAuthCacheAction onCleared={reloadDevices} />
+            </ActionPanel.Section>
+            <AccountActions />
+        </ActionPanel>
+    );
+}
+
 function DevicesList() {
     const { devices, isLoading, loadItems } = useDevicesContext();
 
@@ -58,16 +71,21 @@ function DevicesList() {
         <List searchBarPlaceholder="Search device" isLoading={isLoading}>
             <List.EmptyView
                 title="No Devices"
-                actions={
-                    <ActionPanel>
-                        <Action title="Reload Devices" onAction={loadItems} />
-                        <ClearAuthCacheAction onCleared={loadItems} />
-                    </ActionPanel>
-                }
+                actions={<AccountActionPanel reloadDevices={loadItems} />}
             />
-            {devices.map((device) => (
-                <DevicesItem key={device.device_id} item={device} />
-            ))}
+            <List.Section title="Account">
+                <List.Item
+                    title="StarLine Account"
+                    subtitle="Account-level API data and data transfer settings"
+                    icon={Icon.Person}
+                    actions={<AccountActionPanel reloadDevices={loadItems} />}
+                />
+            </List.Section>
+            <List.Section title="Devices">
+                {devices.map((device) => (
+                    <DevicesItem key={device.device_id} item={device} />
+                ))}
+            </List.Section>
         </List>
     );
 }

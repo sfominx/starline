@@ -24,8 +24,10 @@ class FullAuthStarLineClient extends StarLineClient {
     }
 }
 
-const jsonResponse = (data: unknown, headers?: { get: (name: string) => string | null }) =>
+const jsonResponse = (data: unknown, headers?: { raw: () => Record<string, string[]> }) =>
     ({ json: () => Promise.resolve(data), headers }) as never;
+
+const slnetHeaders = (cookie: string) => ({ raw: () => ({ "set-cookie": [cookie] }) });
 
 const textResponse = (status: number, text: string) =>
     ({ status, text: () => Promise.resolve(text) }) as never;
@@ -69,7 +71,7 @@ describe("StarLineClient", () => {
             .mockResolvedValueOnce(jsonResponse({ state: 1, desc: { token: "app-token" } }))
             .mockResolvedValueOnce(jsonResponse({ state: 1, desc: { user_token: "slid-token" } }))
             .mockResolvedValueOnce(
-                jsonResponse({ user_id: "user-1" }, { get: () => "slnet=slnet-cookie; Path=/" }),
+                jsonResponse({ user_id: "user-1" }, slnetHeaders("slnet=slnet-cookie; Path=/")),
             )
             .mockResolvedValueOnce(textResponse(200, JSON.stringify({ code: 200 })));
 
@@ -99,13 +101,13 @@ describe("StarLineClient", () => {
             .mockResolvedValueOnce(jsonResponse({ state: 1, desc: { token: "app-token-1" } }))
             .mockResolvedValueOnce(jsonResponse({ state: 1, desc: { user_token: "slid-token-1" } }))
             .mockResolvedValueOnce(
-                jsonResponse({ user_id: "user-1" }, { get: () => "slnet=slnet-cookie-1; Path=/" }),
+                jsonResponse({ user_id: "user-1" }, slnetHeaders("slnet=slnet-cookie-1; Path=/")),
             )
             .mockResolvedValueOnce(jsonResponse({ state: 1, desc: { code: "app-code-2" } }))
             .mockResolvedValueOnce(jsonResponse({ state: 1, desc: { token: "app-token-2" } }))
             .mockResolvedValueOnce(jsonResponse({ state: 1, desc: { user_token: "slid-token-2" } }))
             .mockResolvedValueOnce(
-                jsonResponse({ user_id: "user-2" }, { get: () => "slnet=slnet-cookie-2; Path=/" }),
+                jsonResponse({ user_id: "user-2" }, slnetHeaders("slnet=slnet-cookie-2; Path=/")),
             );
 
         await new FullAuthStarLineClient().callAuth();
@@ -138,14 +140,14 @@ describe("StarLineClient", () => {
             .mockResolvedValueOnce(jsonResponse({ state: 1, desc: { token: "app-token-1" } }))
             .mockResolvedValueOnce(jsonResponse({ state: 1, desc: { user_token: "slid-token-1" } }))
             .mockResolvedValueOnce(
-                jsonResponse({ user_id: "user-1" }, { get: () => "slnet=slnet-cookie-1; Path=/" }),
+                jsonResponse({ user_id: "user-1" }, slnetHeaders("slnet=slnet-cookie-1; Path=/")),
             )
             .mockResolvedValueOnce(textResponse(200, JSON.stringify({ code: 200 })))
             .mockResolvedValueOnce(jsonResponse({ state: 1, desc: { code: "app-code-2" } }))
             .mockResolvedValueOnce(jsonResponse({ state: 1, desc: { token: "app-token-2" } }))
             .mockResolvedValueOnce(jsonResponse({ state: 1, desc: { user_token: "slid-token-2" } }))
             .mockResolvedValueOnce(
-                jsonResponse({ user_id: "user-2" }, { get: () => "slnet=slnet-cookie-2; Path=/" }),
+                jsonResponse({ user_id: "user-2" }, slnetHeaders("slnet=slnet-cookie-2; Path=/")),
             )
             .mockResolvedValueOnce(textResponse(200, JSON.stringify({ code: 200 })));
 

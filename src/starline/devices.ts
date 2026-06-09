@@ -2,14 +2,15 @@ import { LocalStorage } from "@raycast/api";
 
 import { StarLineCommands } from "./commands";
 import { API_VERSION, type ApiVersion, LOCAL_STORAGE } from "./constants";
-import { deviceUrl, legacyDeviceUrl, userUrl } from "./urls";
+import { deviceUrl, legacyDeviceUrl, libraryUrl, userUrl } from "./urls";
 
-import type { Devices } from "../types/devices";
+import type { Devices, Item } from "../types/devices";
 import type {
     ControlsLibraryResponse,
     DeviceEventsResponse,
     DevicePositionResponse,
     DeviceStateResponse,
+    LibraryEventsResponse,
     ObdErrorsResponse,
     ObdParamsResponse,
 } from "../types/starline";
@@ -19,13 +20,16 @@ export class StarLineDeviceApi extends StarLineCommands {
         const { userId } = await this.auth();
         const data = await this.request<Devices>(userUrl(API_VERSION.v2, userId, "user_info"));
         const defaultDeviceId = Number(await LocalStorage.getItem(LOCAL_STORAGE.DEFAULT_DEVICE));
+        const uniqueDevices = new Map<number, Item>();
 
-        const devices = [...data.devices, ...(data.shared_devices ?? [])].map((device) => ({
-            ...device,
-            default: device.device_id === defaultDeviceId,
-        }));
+        for (const device of [...data.devices, ...(data.shared_devices ?? [])]) {
+            uniqueDevices.set(device.device_id, {
+                ...device,
+                default: device.device_id === defaultDeviceId,
+            });
+        }
 
-        return { result: { ...data, devices, shared_devices: [] } };
+        return { result: { ...data, devices: [...uniqueDevices.values()], shared_devices: [] } };
     }
 
     getControlsLibrary<T = ControlsLibraryResponse>(deviceId: string) {
@@ -90,6 +94,14 @@ export class StarLineDeviceApi extends StarLineCommands {
 
     getDetails<T = unknown>(deviceId: string, body: unknown) {
         return this.postDevice<T>(API_VERSION.v1, deviceId, "details", body);
+    }
+
+    getEventLibrary<T = LibraryEventsResponse>() {
+        return this.request<T>(libraryUrl(API_VERSION.v3, "events"));
+    }
+
+    getEventDescription<T = LibraryEventsResponse>(eventId: number) {
+        return this.request<T>(libraryUrl(API_VERSION.v3, `events/${eventId}`));
     }
 
     private getDevice<T>(version: ApiVersion, deviceId: string, path?: string) {

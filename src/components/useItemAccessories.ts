@@ -16,7 +16,7 @@ const stateIcon = (enabled: boolean, enabledIcon: Icon, disabledIcon: Icon, tool
 export default function useItemAccessories(item: Item): ListItemAccessory[] {
     const accessories: ListItemAccessory[] = [];
 
-    if (item.default) {
+    if (item.default === true) {
         accessories.push({
             icon: { source: Icon.Star, tintColor: Color.Yellow },
             tooltip: "Default device",

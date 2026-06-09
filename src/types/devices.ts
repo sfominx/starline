@@ -1,6 +1,6 @@
 export type Item = {
     object: "item";
-    default: boolean;
+    default?: boolean;
 
     // API response
     device_id: number;

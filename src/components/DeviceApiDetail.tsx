@@ -1,4 +1,4 @@
-import { Detail, Toast, showToast } from "@raycast/api";
+import { Action, ActionPanel, Detail, Toast, showToast } from "@raycast/api";
 import { useEffect, useState } from "react";
 
 import { useStarLine } from "../context/starline";
@@ -22,6 +22,7 @@ import type {
     DevicePositionResponse,
     DeviceSettingsResponse,
     DeviceStateResponse,
+    LibraryEventsResponse,
     ObdErrorsResponse,
     ObdParamsResponse,
 } from "../types/starline";
@@ -41,7 +42,8 @@ export type DeviceApiDetailKind =
     | "events"
     | "ways"
     | "drivingScore"
-    | "drivingScoreHistory";
+    | "drivingScoreHistory"
+    | "eventLibrary";
 
 type DeviceApiDetailProps = {
     item: Item;
@@ -58,6 +60,13 @@ type ApiDetailLoader = (
 type DetailFormatter = (data: unknown) => string;
 
 const DEFAULT_HISTORY_HOURS = 24;
+const HISTORY_PERIOD_OPTIONS: Array<{ hours: number; label: string }> = [
+    { hours: 1, label: "Last 1h" },
+    { hours: 6, label: "Last 6h" },
+    { hours: 24, label: "Last 24h" },
+    { hours: 24 * 7, label: "Last 7d" },
+];
+const PERIOD_AWARE_KINDS = new Set<DeviceApiDetailKind>(["events", "ways"]);
 const JSON_FORMATTERS = new Set<DeviceApiDetailKind>([
     "info",
     "data",
@@ -84,6 +93,7 @@ const API_DETAIL_LOADERS: Record<DeviceApiDetailKind, ApiDetailLoader> = {
     ways: (api, id, { start, end }) => api.getWays(id, { begin: start, end, split_way: false }),
     drivingScore: (api, id) => api.getDrivingScore(id, {}),
     drivingScoreHistory: (api, id) => api.getDrivingScoreHistory(id, {}),
+    eventLibrary: (api) => api.getEventLibrary(),
 };
 
 const FORMATTERS: Partial<Record<DeviceApiDetailKind, DetailFormatter>> = {
@@ -94,6 +104,7 @@ const FORMATTERS: Partial<Record<DeviceApiDetailKind, DetailFormatter>> = {
     obdParams: (data) => formatObdParams(data as ObdParamsResponse),
     obdErrors: (data) => formatObdErrors(data as ObdErrorsResponse),
     settings: (data) => formatSettings(data as DeviceSettingsResponse),
+    eventLibrary: (data) => formatEventLibrary(data as LibraryEventsResponse),
 };
 
 function formatControls({ controls }: Partial<ControlsLibraryResponse>) {
@@ -111,13 +122,13 @@ function formatState({ state }: Partial<DeviceStateResponse>) {
 
     return [
         markdownSection("Security", [
-            ["Armed", statusLabel(carState.arm, "В охране", "Снято с охраны")],
-            ["Alarm", statusLabel(carState.alarm, "Тревога", "Нет тревоги")],
+            ["Armed", statusLabel(carState.arm, "Armed", "Disarmed")],
+            ["Alarm", statusLabel(carState.alarm, "Alarm", "No alarm")],
             ["Service Mode", enabledDisabledLabel(carState.valet)],
             ["Hijack", enabledDisabledLabel(carState.hijack)],
         ]),
         markdownSection("Engine", [
-            ["Running", statusLabel(carState.run, "Запущен", "Остановлен")],
+            ["Running", statusLabel(carState.run, "Running", "Stopped")],
             ["Ignition", enabledDisabledLabel(carState.ign)],
             ["Remote Start", enabledDisabledLabel(carState.r_start)],
             ["Webasto", enabledDisabledLabel(carState.webasto)],
@@ -210,6 +221,15 @@ function formatSettings(data: Partial<DeviceSettingsResponse>) {
     })}`;
 }
 
+function formatEventLibrary({ eventDescriptions }: Partial<LibraryEventsResponse>) {
+    return markdownTable(
+        ["Code", "Group", "Description"],
+        (eventDescriptions ?? []).map(
+            (event): MarkdownRow => [event.code, event.group_id, event.desc],
+        ),
+    );
+}
+
 function formatDetail(kind: DeviceApiDetailKind, data: unknown) {
     if (JSON_FORMATTERS.has(kind)) {
         return jsonCodeBlock(data);
@@ -227,6 +247,8 @@ function DeviceApiDetail({ item, kind, title }: DeviceApiDetailProps) {
     const starline = useStarLine();
     const [isLoading, setIsLoading] = useState(true);
     const [markdown, setMarkdown] = useState(`# ${title}\n\nLoading...`);
+    const [historyHours, setHistoryHours] = useState(DEFAULT_HISTORY_HOURS);
+    const supportsPeriod = PERIOD_AWARE_KINDS.has(kind);
 
     useEffect(() => {
         async function load() {
@@ -235,7 +257,7 @@ function DeviceApiDetail({ item, kind, title }: DeviceApiDetailProps) {
                 const data = await API_DETAIL_LOADERS[kind](
                     starline,
                     item.device_id.toString(),
-                    lastHoursPeriod(DEFAULT_HISTORY_HOURS),
+                    lastHoursPeriod(historyHours),
                 );
                 setMarkdown(`# ${title}\n\n${formatDetail(kind, data)}`);
             } catch (error) {
@@ -248,9 +270,25 @@ function DeviceApiDetail({ item, kind, title }: DeviceApiDetailProps) {
         }
 
         void load();
-    }, [item.device_id, kind, starline, title]);
+    }, [historyHours, item.device_id, kind, starline, title]);
 
-    return <Detail isLoading={isLoading} markdown={markdown} />;
+    const actions = supportsPeriod ? (
+        <ActionPanel>
+            <ActionPanel.Section title="History Period">
+                {HISTORY_PERIOD_OPTIONS.map(({ hours, label }) => (
+                    <Action
+                        key={hours}
+                        title={label}
+                        onAction={() => {
+                            setHistoryHours(hours);
+                        }}
+                    />
+                ))}
+            </ActionPanel.Section>
+        </ActionPanel>
+    ) : undefined;
+
+    return <Detail isLoading={isLoading} markdown={markdown} actions={actions} />;
 }
 
 export default DeviceApiDetail;

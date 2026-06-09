@@ -97,7 +97,7 @@
         }
     ],
     "dependencies": {
-        "@raycast/api": "^1.104.17",
+        "@raycast/api": "^1.104.18",
         "node-fetch": "^3.3.2",
         "react": "^19.2.6"
     },
@@ -105,27 +105,24 @@
         "@raycast/eslint-config": "^2.1.1",
         "@raycast/eslint-plugin": "^2.1.1",
         "@types/jest": "^30.0.0",
-        "@types/node": "25.8.0",
-        "@types/react": "19.2.14",
+        "@types/node": "22.19.17",
+        "@types/react": "^19.2.15",
         "@types/react-test-renderer": "^19.1.0",
-        "@typescript-eslint/eslint-plugin": "^8.59.3",
-        "@typescript-eslint/parser": "^8.59.3",
-        "eslint": "^10.4.0",
-        "eslint-config-airbnb": "^19.0.4",
+        "eslint": "^9.39.4",
         "eslint-import-resolver-typescript": "^4.4.4",
         "eslint-plugin-import": "^2.32.0",
-        "eslint-plugin-jsx-a11y": "^6.10.2",
         "eslint-plugin-prettier": "^5.5.5",
         "eslint-plugin-promise": "^7.3.0",
         "eslint-plugin-react": "^7.37.5",
         "eslint-plugin-react-hooks": "^7.1.1",
         "jest": "^30.4.2",
+        "knip": "^6.14.2",
         "prettier": "^3.8.3",
         "react-test-renderer": "^19.2.6",
-        "ts-jest": "^29.4.9",
+        "ts-jest": "^29.4.11",
         "ts-prune": "^0.10.3",
-        "tslint-lines-between-class-members": "^1.3.6",
-        "typescript": "^6.0.3"
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.59.4"
     },
     "scripts": {
         "build": "ray build -e dist",
@@ -134,6 +131,8 @@
         "fix-lint": "ray lint --fix",
         "lint": "ray lint",
         "prune": "ts-prune --ignore \"src/(arm|disarm|start_engine|stop_engine|arm_quietly|disarm_quietly|horn|update_position|devices)\\.tsx|satisfies|Record|CommandValue|src/utils/defaultDeviceCommand\\.ts\"",
+        "knip": "knip --no-progress",
+        "dead-code": "npm run prune && npm run knip",
         "test": "jest",
         "publish": "npx @raycast/api@latest publish"
     }

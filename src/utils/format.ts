@@ -51,11 +51,11 @@ export function statusLabel(
 }
 
 export function enabledDisabledLabel(value: boolean | undefined) {
-    return statusLabel(value, "Включено", "Выключено");
+    return statusLabel(value, "Enabled", "Disabled");
 }
 
 export function openClosedLabel(value: boolean | undefined) {
-    return statusLabel(value, "Открыто", "Закрыто");
+    return statusLabel(value, "Open", "Closed");
 }
 
 export function markdownSection(title: string, rows: MarkdownRow[]) {

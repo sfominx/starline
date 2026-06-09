@@ -41,6 +41,36 @@ describe("DeviceCommand", () => {
         expect(showToast).toHaveBeenCalledWith("failure", "Failed to load devices", "network down");
     });
 
+    it("renders account-level actions in the Devices command", async () => {
+        jest.spyOn(StarLine.prototype, "getDevices").mockResolvedValue({
+            result: { devices: [], shared_devices: [], code: 200, codestring: "OK" },
+        });
+        let renderer: ReactTestRenderer | undefined;
+
+        await act(async () => {
+            renderer = create(<DeviceCommand />);
+            await flushPromises();
+        });
+
+        if (renderer === undefined) {
+            throw new Error("Renderer was not created");
+        }
+
+        const actionTitles = renderer.root
+            .findAll((node) => typeof node.props.title === "string")
+            .map((node) => String(node.props.title));
+
+        expect(actionTitles).toEqual(
+            expect.arrayContaining([
+                "StarLine Account",
+                "Show User Devices",
+                "Show Device List",
+                "Show Mobile Devices",
+                "Manage Data Transfer",
+            ]),
+        );
+    });
+
     it("shows captcha URL as description text instead of an editable field", async () => {
         jest.spyOn(StarLine.prototype, "getDevices").mockRejectedValue(
             new CaptchaNeededError("Captcha needed.", "sid-1", "https://captcha.test/image.png"),

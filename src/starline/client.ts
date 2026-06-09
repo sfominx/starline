@@ -36,8 +36,15 @@ const hash = (algorithm: "md5" | "sha1", value: string) =>
     createHash(algorithm).update(value).digest("hex");
 const md5 = (value: string) => hash("md5", value);
 const sha1 = (value: string) => hash("sha1", value);
-const parseSlnetCookie = (setCookie: string | null) =>
-    /(?:^|[,;\s])slnet=([^;,\s]+)/.exec(setCookie ?? "")?.[1];
+const parseSlnetCookie = (setCookies: string[]) => {
+    for (const cookie of setCookies) {
+        const match = /^\s*slnet=([^;]+)/.exec(cookie);
+        if (match !== null) {
+            return match[1];
+        }
+    }
+    return undefined;
+};
 const encodeSlnetAuth = ({ userId, slnetUserToken }: AuthTokens) =>
     JSON.stringify({ userId, slnetUserToken });
 const decodeSlnetAuth = (value: string): AuthTokens | undefined => {
@@ -128,10 +135,6 @@ export class StarLineClient {
     static async clearAuthCache() {
         memorySecrets.clear();
         await Promise.all(AUTH_CACHE_KEYS.map((key) => LocalStorage.removeItem(key)));
-    }
-
-    clearAuthCache() {
-        return StarLineClient.clearAuthCache();
     }
 
     private memorySecretKey(key: StoredSecretKey): MemorySecretKey {
@@ -244,7 +247,7 @@ export class StarLineClient {
             headers: JSON_HEADERS,
         });
         const data = await readJson<{ user_id: string }>(response);
-        const slnetUserToken = parseSlnetCookie(response.headers.get("set-cookie"));
+        const slnetUserToken = parseSlnetCookie(response.headers.raw()["set-cookie"] ?? []);
 
         if (!hasText(slnetUserToken)) {
             throw new DisplayableError("Failed to parse SLNet token from auth response");

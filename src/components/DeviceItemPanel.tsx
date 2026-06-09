@@ -1,169 +1,54 @@
-import { Action, ActionPanel, Alert, Icon, environment } from "@raycast/api";
+import { Action, ActionPanel, Icon, environment } from "@raycast/api";
 
 import ClearAuthCacheAction from "./actions/ClearAuthCache";
-import CommandAction from "./actions/Command";
 import DefaultDeviceAction from "./actions/DefaultDevice";
-import { ConfiguredDeviceCommandAction } from "./actions/DeviceCommand";
+import DeviceCommandAction, { ConfiguredDeviceCommandAction } from "./actions/DeviceCommand";
 import DeviceApiDetail from "./DeviceApiDetail";
 import DeviceDetails from "./DeviceDetails";
 import DeviceJsonMutationForm from "./DeviceJsonMutationForm";
+import EventDescriptionForm from "./EventDescriptionForm";
+import HijackCommandForm from "./HijackCommandForm";
+import LbsPositionForm from "./LbsPositionForm";
 import { useSelectedDeviceItem } from "./context/deviceItem";
-import { PRIMARY_DEVICE_ACTIONS } from "../starline/commandConfig";
+import {
+    ADVANCED_DEVICE_ACTIONS,
+    ADVANCED_DEVICE_ACTION_KEYS,
+    PRIMARY_DEVICE_ACTIONS,
+} from "../starline/commandConfig";
+import { isCommandSupported } from "../starline/commandSupport";
 
-import type { ComponentProps } from "react";
 import type { DeviceApiDetailKind } from "./DeviceApiDetail";
 import type { DeviceJsonMutationKind } from "./DeviceJsonMutationForm";
-import type { DeviceCommandValue } from "../starline/commandConfig";
 
 type PanelItem<TKind extends string> = { title: string; kind: TKind; icon: Icon };
-type RawCommand = {
-    title: string;
-    command: string;
-    value?: DeviceCommandValue;
-    icon?: Icon;
-    successMessage?: string;
-    confirmation?: ComponentProps<typeof CommandAction>["confirmation"];
-};
 
-const RAW_COMMAND_TYPES = {
-    handsFree: "hfree",
-    disarmTrunk: "disarm_trunk",
-    panic: "panic",
-    balance: "getbalance",
-    output: "out",
-    dvr: "dvr",
-    webasto: "webasto",
-    webastoOn: "webasto_on",
-    webastoOff: "webasto_off",
-    flex: (index: number) => `flex_${index}`,
-} as const;
-
-const DETAIL_ITEMS = [
-    ["Supported Controls", "controls", Icon.List],
-    ["Live State", "state", Icon.Heartbeat],
-    ["Position", "position", Icon.Map],
-    ["Device Info", "info", Icon.Info],
-    ["Full Device Data", "data", Icon.Document],
-    ["Summary Report", "report", Icon.BarChart],
-    ["Settings", "settings", Icon.Gear],
-    ["Comfort Options", "comfortOptions", Icon.Window],
-    ["Events / Last 24h", "events", Icon.Clock],
-    ["Track / Last 24h", "ways", Icon.Map],
-    ["Driving Score", "drivingScore", Icon.BarChart],
-    ["Driving Score History", "drivingScoreHistory", Icon.BarChart],
-    ["OBD Params", "obdParams", Icon.Gauge],
-    ["OBD Errors", "obdErrors", Icon.ExclamationMark],
-] as const satisfies ReadonlyArray<readonly [string, DeviceApiDetailKind, Icon]>;
-
-const JSON_FORM_ITEMS = [
-    ["Update Device Info", "deviceInfo", Icon.Pencil],
-    ["Update Controls", "controls", Icon.List],
-    ["Put Comfort Options", "comfortOptions", Icon.Window],
-    ["Update Webasto Settings", "webastoSettings", Icon.Gear],
-    ["Update Remote Start Settings", "remoteStartSettings", Icon.Gear],
-    ["Update Shock Sensor Settings", "shockSensorSettings", Icon.Gear],
-    ["Update Monitoring Settings", "monitoringSettings", Icon.Gear],
-] as const satisfies ReadonlyArray<readonly [string, DeviceJsonMutationKind, Icon]>;
-
-const destructiveConfirmation = (
-    title: string,
-    message: string,
-    primaryActionTitle: string,
-): RawCommand["confirmation"] => ({
-    title,
-    message,
-    primaryActionTitle,
-    style: Alert.ActionStyle.Destructive,
-});
-
-const toggleCommands = (
-    command: string,
-    icon: Icon,
-    enabled: Pick<RawCommand, "title" | "successMessage">,
-    disabled: Pick<RawCommand, "title" | "successMessage">,
-    disabledIcon = icon,
-): RawCommand[] => [
-    { ...enabled, command, value: 1, icon },
-    { ...disabled, command, value: 0, icon: disabledIcon },
+const DEVICE_DETAIL_ACTIONS: Array<PanelItem<DeviceApiDetailKind>> = [
+    { title: "Supported Controls", kind: "controls", icon: Icon.List },
+    { title: "Live State", kind: "state", icon: Icon.Heartbeat },
+    { title: "Position", kind: "position", icon: Icon.Map },
+    { title: "Device Info", kind: "info", icon: Icon.Info },
+    { title: "Full Device Data", kind: "data", icon: Icon.Document },
+    { title: "Summary Report", kind: "report", icon: Icon.BarChart },
+    { title: "Settings", kind: "settings", icon: Icon.Gear },
+    { title: "Comfort Options", kind: "comfortOptions", icon: Icon.Window },
+    { title: "Events / Last 24h", kind: "events", icon: Icon.Clock },
+    { title: "Track / Last 24h", kind: "ways", icon: Icon.Map },
+    { title: "Driving Score", kind: "drivingScore", icon: Icon.BarChart },
+    { title: "Driving Score History", kind: "drivingScoreHistory", icon: Icon.BarChart },
+    { title: "OBD Params", kind: "obdParams", icon: Icon.Gauge },
+    { title: "OBD Errors", kind: "obdErrors", icon: Icon.ExclamationMark },
+    { title: "Event Library", kind: "eventLibrary", icon: Icon.Book },
 ];
 
-const QUICK_COMMANDS = toggleCommands(
-    RAW_COMMAND_TYPES.handsFree,
-    Icon.Person,
-    { title: "Enable Hands Free", successMessage: "Hands Free enabled" },
-    { title: "Disable Hands Free", successMessage: "Hands Free disabled" },
-);
-
-const ADVANCED_COMMANDS: RawCommand[] = [
-    {
-        title: "Disarm Trunk",
-        command: RAW_COMMAND_TYPES.disarmTrunk,
-        icon: Icon.LockUnlocked,
-        successMessage: "Trunk disarmed",
-        confirmation: destructiveConfirmation(
-            "Disarm trunk?",
-            "This will disable trunk security for the selected device.",
-            "Disarm Trunk",
-        ),
-    },
-    {
-        title: "Panic",
-        command: RAW_COMMAND_TYPES.panic,
-        icon: Icon.ExclamationMark,
-        confirmation: destructiveConfirmation(
-            "Trigger panic mode?",
-            "This will enable alarm mode for 15 seconds.",
-            "Trigger Panic",
-        ),
-    },
-    {
-        title: "Get SIM 1 Balance",
-        command: RAW_COMMAND_TYPES.balance,
-        value: 1,
-        icon: Icon.CreditCard,
-    },
-    {
-        title: "Get SIM 2 Balance",
-        command: RAW_COMMAND_TYPES.balance,
-        value: 2,
-        icon: Icon.CreditCard,
-    },
-    ...toggleCommands(
-        RAW_COMMAND_TYPES.output,
-        Icon.Bolt,
-        { title: "Enable Output", successMessage: "Enable Output" },
-        { title: "Disable Output", successMessage: "Disable Output" },
-        Icon.BoltDisabled,
-    ),
-    ...toggleCommands(
-        RAW_COMMAND_TYPES.dvr,
-        Icon.Video,
-        { title: "Enable DVR", successMessage: "Enable DVR" },
-        { title: "Disable DVR", successMessage: "Disable DVR" },
-    ),
-    ...toggleCommands(
-        RAW_COMMAND_TYPES.webasto,
-        Icon.Gear,
-        { title: "Enable Webasto", successMessage: "Enable Webasto" },
-        { title: "Disable Webasto", successMessage: "Disable Webasto" },
-    ),
-    { title: "Webasto On", command: RAW_COMMAND_TYPES.webastoOn, icon: Icon.Gear },
-    { title: "Webasto Off", command: RAW_COMMAND_TYPES.webastoOff, icon: Icon.Gear },
-    ...Array.from({ length: 9 }, (_, index) => ({
-        title: `Flex ${index + 1}`,
-        command: RAW_COMMAND_TYPES.flex(index + 1),
-        icon: Icon.CommandSymbol,
-    })),
+const JSON_FORM_ACTIONS: Array<PanelItem<DeviceJsonMutationKind>> = [
+    { title: "Update Device Info", kind: "deviceInfo", icon: Icon.Pencil },
+    { title: "Update Controls", kind: "controls", icon: Icon.List },
+    { title: "Put Comfort Options", kind: "comfortOptions", icon: Icon.Window },
+    { title: "Update Webasto Settings", kind: "webastoSettings", icon: Icon.Gear },
+    { title: "Update Remote Start Settings", kind: "remoteStartSettings", icon: Icon.Gear },
+    { title: "Update Shock Sensor Settings", kind: "shockSensorSettings", icon: Icon.Gear },
+    { title: "Update Monitoring Settings", kind: "monitoringSettings", icon: Icon.Gear },
 ];
-
-const panelItem = <TKind extends string>([title, kind, icon]: readonly [string, TKind, Icon]) => ({
-    title,
-    kind,
-    icon,
-});
-
-const DEVICE_DETAIL_ACTIONS = DETAIL_ITEMS.map(panelItem);
-const JSON_FORM_ACTIONS = JSON_FORM_ITEMS.map(panelItem);
 
 function DetailActions({ items }: { items: Array<PanelItem<DeviceApiDetailKind>> }) {
     const item = useSelectedDeviceItem();
@@ -211,14 +96,21 @@ function DevicesItemActionPanel({ showDetailsAction = true }: { showDetailsActio
                 {PRIMARY_DEVICE_ACTIONS.map((command) => (
                     <ConfiguredDeviceCommandAction key={command} command={command} />
                 ))}
-                {QUICK_COMMANDS.map((command) => (
-                    <CommandAction key={command.title} {...command} />
-                ))}
-                <DefaultDeviceAction isDefault={item.default} />
+                <DefaultDeviceAction isDefault={item.default === true} />
             </ActionPanel.Section>
 
             <ActionPanel.Section title="Device Data">
                 <DetailActions items={DEVICE_DETAIL_ACTIONS} />
+                <Action.Push
+                    title="Show Event Description"
+                    icon={Icon.MagnifyingGlass}
+                    target={<EventDescriptionForm />}
+                />
+                <Action.Push
+                    title="Get LBS Position"
+                    icon={Icon.Map}
+                    target={<LbsPositionForm />}
+                />
             </ActionPanel.Section>
 
             {environment.isDevelopment && (
@@ -228,8 +120,22 @@ function DevicesItemActionPanel({ showDetailsAction = true }: { showDetailsActio
             )}
 
             <ActionPanel.Section title="Advanced Commands">
-                {ADVANCED_COMMANDS.map((command) => (
-                    <CommandAction key={command.title} {...command} />
+                {isCommandSupported("hijack", item) && (
+                    <>
+                        <Action.Push
+                            title="Enable Hijack…"
+                            icon={Icon.ExclamationMark}
+                            target={<HijackCommandForm item={item} enabled />}
+                        />
+                        <Action.Push
+                            title="Disable Hijack…"
+                            icon={Icon.ExclamationMark}
+                            target={<HijackCommandForm item={item} enabled={false} />}
+                        />
+                    </>
+                )}
+                {ADVANCED_DEVICE_ACTION_KEYS.map((command) => (
+                    <DeviceCommandAction key={command} {...ADVANCED_DEVICE_ACTIONS[command]} />
                 ))}
             </ActionPanel.Section>
 

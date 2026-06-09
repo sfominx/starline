@@ -22,3 +22,13 @@ export const legacyDeviceUrl = (deviceId: string, path: string) =>
 
 export const userUrl = (version: ApiVersion, userId: string, path: string) =>
     developerJsonUrl(version, "user", userId, path);
+
+export const appendQuery = (url: string, params: Record<string, string | number | boolean>) => {
+    const query = new URLSearchParams(
+        Object.entries(params).map(([key, value]): [string, string] => [key, value.toString()]),
+    ).toString();
+    return query.length === 0 ? url : `${url}${url.includes("?") ? "&" : "?"}${query}`;
+};
+
+export const libraryUrl = (version: ApiVersion, path: string) =>
+    developerJsonUrl(version, "library", path);

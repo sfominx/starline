@@ -27,6 +27,35 @@ const Icon = new Proxy(
     },
 );
 
+// List.Item renders its `actions` prop so action titles are reachable in findAll
+const ListItem = ({
+    children,
+    actions,
+    ...props
+}: {
+    children?: React.ReactNode;
+    actions?: React.ReactNode;
+}) => React.createElement("List.Item", props, actions, children);
+ListItem.displayName = "List.Item";
+
+const Dropdown = Object.assign(createComponent("Form.Dropdown"), {
+    Item: createComponent("Form.Dropdown.Item"),
+});
+
+const Form = Object.assign(createComponent("Form"), {
+    Description: createComponent("Form.Description"),
+    Dropdown,
+    PasswordField: createComponent("Form.PasswordField"),
+    TextArea: createComponent("Form.TextArea"),
+    TextField: createComponent("Form.TextField"),
+});
+
+const List = Object.assign(createComponent("List"), {
+    EmptyView: createComponent("List.EmptyView"),
+    Item: ListItem,
+    Section: createComponent("List.Section"),
+});
+
 jest.mock("node-fetch", () => jest.fn(), { virtual: true });
 
 jest.mock("@raycast/api", () => ({
@@ -35,16 +64,9 @@ jest.mock("@raycast/api", () => ({
     Alert: { ActionStyle: { Default: "default", Destructive: "destructive" } },
     Color: {},
     Detail: createComponent("Detail"),
-    Form: Object.assign(createComponent("Form"), {
-        Description: createComponent("Form.Description"),
-        TextArea: createComponent("Form.TextArea"),
-        TextField: createComponent("Form.TextField"),
-    }),
+    Form,
     Icon,
-    List: Object.assign(createComponent("List"), {
-        EmptyView: createComponent("List.EmptyView"),
-        Item: createComponent("List.Item"),
-    }),
+    List,
     LocalStorage: {
         getItem: jest.fn(),
         setItem: jest.fn(),
@@ -55,5 +77,6 @@ jest.mock("@raycast/api", () => ({
     environment: { isDevelopment: false },
     getPreferenceValues: jest.fn(() => ({ AppId: "", Secret: "", Login: "", Password: "" })),
     popToRoot: jest.fn(),
+    push: jest.fn(),
     showToast: jest.fn(),
 }), { virtual: true });

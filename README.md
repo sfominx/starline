@@ -26,12 +26,18 @@ Open **Devices** first, confirm login/captcha if prompted, and set a default dev
 
 The device action panel exposes supported primary commands, advanced commands, and read-only detail screens for state, position, controls, OBD, settings, events, tracks, and reports. Development mode also exposes raw JSON mutation forms for advanced API experimentation.
 
+## API coverage
+
+The extension covers product-usable StarLine Open API areas: device list/state/position/data/report/details, event history and event library, OBD data/errors, tracks, driving score, settings read and mutation endpoints (currently raw JSON; typed forms are pending), comfort options, user device/mobile-device lists, LBS position lookup, data transfer settings, synchronous commands, and async command polling with `/set_param` fallback.
+
+Digest Challenge Response authentication from `/any_api_method` is not exposed as a product feature because the extension uses the documented SLID → SLNet authentication flow for WebAPI calls.
+
 ## Security and storage
 
 The extension does not persist StarLine bearer tokens or cookies in Raycast LocalStorage. Auth secrets are cached only in memory for the current process using the configured TTLs. LocalStorage is used for captcha metadata, the StarLine user id, and the selected default device.
 
 ## Limitations
 
-- Some OpenAPI endpoints are still planned; see `STARLINE_API_IMPLEMENTATION_PLAN.md` for current status.
-- Settings mutation forms are raw JSON and intended for development/advanced use.
+- See `STARLINE_API_IMPLEMENTATION_PLAN.md` for endpoint coverage, documented exclusions, and remaining non-goals.
+- Settings mutation forms currently use raw JSON mode; typed forms are planned for a future release.
 - Real device behavior can vary by firmware and supported controls.

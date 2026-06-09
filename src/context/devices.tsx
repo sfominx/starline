@@ -35,7 +35,7 @@ const DevicesContext = createContext<DevicesContextType | null>(null);
 
 export function DevicesProvider({ children }: { children: ReactNode }) {
     const starline = useStarLine();
-    const [state, setState] = useReducer(
+    const [state, dispatch] = useReducer(
         (previous: DevicesState, next: DevicesStateUpdate) => ({
             ...previous,
             ...(typeof next === "function" ? next(previous) : next),
@@ -44,25 +44,25 @@ export function DevicesProvider({ children }: { children: ReactNode }) {
     );
 
     const loadItems = useCallback(async () => {
-        setState({ isLoading: true });
+        dispatch({ isLoading: true });
 
         try {
             const { result } = await starline.getDevices();
-            setState({ ...result, captchaImg: undefined, captchaSid: undefined });
+            dispatch({ ...result, captchaImg: undefined, captchaSid: undefined });
         } catch (error) {
             if (error instanceof CaptchaNeededError) {
-                setState({ captchaImg: error.captchaImg, captchaSid: error.captchaSid });
+                dispatch({ captchaImg: error.captchaImg, captchaSid: error.captchaSid });
                 return;
             }
 
             await showToast(Toast.Style.Failure, "Failed to load devices", getErrorMessage(error));
         } finally {
-            setState({ isLoading: false });
+            dispatch({ isLoading: false });
         }
     }, [starline]);
 
     const setDefaultDevice = useCallback((item: Item, enabled: boolean) => {
-        setState(({ devices }) => ({
+        dispatch(({ devices }) => ({
             devices: devices.map((device) => ({
                 ...device,
                 default: enabled && device.device_id === item.device_id,
@@ -78,7 +78,7 @@ export function DevicesProvider({ children }: { children: ReactNode }) {
         () => ({
             ...state,
             loadItems,
-            updateState: setState,
+            updateState: dispatch,
             setDefaultDevice,
         }),
         [loadItems, setDefaultDevice, state],

@@ -76,6 +76,28 @@ const item: Item = {
     controls: [{ position: 1, type: "hfree" }],
 };
 
+const permissiveItem: Item = { ...item, functions: [], controls: [] };
+
+function renderPanel(subject: Item) {
+    let renderer: ReactTestRenderer | undefined;
+
+    act(() => {
+        renderer = create(
+            <DevicesItemContext.Provider value={subject}>
+                <DevicesItemActionPanel />
+            </DevicesItemContext.Provider>,
+        );
+    });
+
+    if (renderer === undefined) {
+        throw new Error("Renderer was not created");
+    }
+
+    return renderer.root
+        .findAll((node) => node.type === "Action")
+        .map((node) => String(node.props.title));
+}
+
 describe("DevicesItemActionPanel", () => {
     let consoleErrorSpy: jest.SpyInstance;
 
@@ -108,27 +130,28 @@ describe("DevicesItemActionPanel", () => {
     });
 
     it("hides unsupported primary commands", () => {
-        let renderer: ReactTestRenderer | undefined;
-
-        act(() => {
-            renderer = create(
-                <DevicesItemContext.Provider value={item}>
-                    <DevicesItemActionPanel />
-                </DevicesItemContext.Provider>,
-            );
-        });
-
-        if (renderer === undefined) {
-            throw new Error("Renderer was not created");
-        }
-
-        const actionTitles = renderer.root
-            .findAll((node) => node.type === "Action")
-            .map((node) => String(node.props.title));
+        const actionTitles = renderPanel(item);
 
         expect(actionTitles).toContain("Enable Hands Free");
         expect(actionTitles).not.toContain("Arm");
         expect(actionTitles).not.toContain("Start Engine");
+    });
+
+    it("hides unsupported advanced commands when device has explicit capabilities", () => {
+        const actionTitles = renderPanel(item);
+
+        expect(actionTitles).not.toContain("Panic");
+        expect(actionTitles).not.toContain("Get SIM 1 Balance");
+        expect(actionTitles).not.toContain("Flex 9");
+    });
+
+    it("shows all advanced command titles for permissive device", () => {
+        const actionTitles = renderPanel(permissiveItem);
+
+        expect(actionTitles).toContain("Enable Hands Free");
+        expect(actionTitles).toContain("Panic");
+        expect(actionTitles).toContain("Get SIM 1 Balance");
+        expect(actionTitles).toContain("Flex 9");
     });
 
     it("hides advanced JSON mutation forms outside development", () => {
