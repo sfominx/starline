@@ -126,8 +126,10 @@ export function DevicesProvider(props: DevicesProviderProps) {
     );
 }
 
+export const useOptionalDevicesContext = () => useContext(DevicesContext);
+
 export const useDevicesContext = () => {
-    const context = useContext(DevicesContext);
+    const context = useOptionalDevicesContext();
     if (context == null) {
         throw new Error("useDevices must be used within a DevicesProvider");
     }

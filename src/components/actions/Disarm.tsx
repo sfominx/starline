@@ -1,11 +1,11 @@
 import { Action, Alert, Icon, Toast, confirmAlert, showToast } from "@raycast/api";
 import { useSelectedDeviceItem } from "../context/deviceItem";
 import { StarLine } from "../../starline/api";
-import { useDevicesContext } from "../../context/devices";
+import { useOptionalDevicesContext } from "../../context/devices";
 
 function DisarmAction() {
     const selectedItem = useSelectedDeviceItem();
-    const { devices, updateState } = useDevicesContext();
+    const devicesContext = useOptionalDevicesContext();
 
     const handleAction = async () => {
         const confirmed = await confirmAlert({
@@ -21,19 +21,20 @@ function DisarmAction() {
 
         const starline = new StarLine();
         const data = await starline.disarm(selectedItem.device_id.toString());
-        devices.forEach((device) => {
-            if (device.device_id === selectedItem.device_id) {
-                device.car_state.arm = data.arm === "1";
-            }
-        });
+        if (devicesContext) {
+            const devices = devicesContext.devices.map((device) => {
+                if (device.device_id === selectedItem.device_id) {
+                    return { ...device, car_state: { ...device.car_state, arm: data.arm === "1" } };
+                }
+                return device;
+            });
 
-        const stateUpdate = {
-            devices,
-            isLoading: false,
-            captchaNeeded: false,
-        };
-
-        updateState(stateUpdate);
+            devicesContext.updateState({
+                devices,
+                isLoading: false,
+                captchaNeeded: false,
+            });
+        }
 
         await showToast(Toast.Style.Success, "Disarmed");
     };
