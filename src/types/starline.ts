@@ -88,6 +88,19 @@ export type ObdErrorsResponse = StarLineApiResponse & {
     }>;
 };
 
+export type AsyncCommandStatus = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export type AsyncCommandResponse = StarLineApiResponse & {
+    cmd_id?: string;
+    type?: string;
+    value?: number;
+    status: AsyncCommandStatus;
+    device_id?: string;
+    time_start?: number;
+    time_stop?: number;
+    now?: number;
+};
+
 export type DeviceSettingsResponse = StarLineApiResponse & {
     device_id: string;
     general?: {

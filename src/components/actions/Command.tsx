@@ -53,9 +53,22 @@ function CommandAction(props: CommandActionProps) {
             if (!confirmed) return;
         }
 
-        const starline = new StarLine();
-        await starline.sendCommand(selectedItem.device_id.toString(), command, value);
-        await showToast(Toast.Style.Success, successMessage);
+        const toast = await showToast(Toast.Style.Animated, title);
+
+        try {
+            const starline = new StarLine();
+            await starline.sendCommandWithAsyncFallback(
+                selectedItem.device_id.toString(),
+                command,
+                value,
+            );
+            toast.style = Toast.Style.Success;
+            toast.title = successMessage;
+        } catch (error) {
+            toast.style = Toast.Style.Failure;
+            toast.title = "Command failed";
+            toast.message = error instanceof Error ? error.message : "Unknown error";
+        }
     };
 
     return <Action title={title} icon={icon} onAction={handleAction} />;
