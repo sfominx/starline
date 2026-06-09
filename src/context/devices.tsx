@@ -17,7 +17,8 @@ type DevicesState = Devices & {
 type DevicesContextType = DevicesState & {
     isEmpty: boolean;
     loadItems: () => Promise<void>;
-    updateState: () => void;
+    updateState: (next: React.SetStateAction<DevicesState>) => void;
+    toggleDefault: (item: Item, isDefault: boolean) => Promise<void>;
 };
 
 type DevicesProviderProps = {
@@ -86,6 +87,22 @@ export function DevicesProvider(props: DevicesProviderProps) {
         }
     }
 
+    const toggleDefault = async (item: Item, isDefault: boolean) => {
+        const newDevices: Item[] = [];
+
+        state.devices.forEach((element) => {
+            if (element.device_id === item.device_id) {
+                newDevices.push({ ...element, default: isDefault });
+                console.log("Default: " + isDefault);
+            } else {
+                newDevices.push(element);
+            }
+        });
+
+        setState({ devices: newDevices });
+        publishItems(state.devices);
+    };
+
     function updateState(next: React.SetStateAction<DevicesState>) {
         const newState = typeof next === "function" ? next(state) : next;
         setState(newState);
@@ -103,8 +120,9 @@ export function DevicesProvider(props: DevicesProviderProps) {
             isLoading: state.isLoading,
             loadItems,
             updateState,
+            toggleDefault,
         }),
-        [state, loadItems, updateState],
+        [state, loadItems, updateState, toggleDefault],
     );
 
     return <DevicesContext.Provider value={memoizedValue}>{children}</DevicesContext.Provider>;

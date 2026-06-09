@@ -6,18 +6,11 @@ import { useDevicesContext } from "../../context/devices";
 
 function UnsetAsDefaultDeviceAction() {
     const selectedItem = useSelectedDeviceItem();
-
-    const { devices } = useDevicesContext();
+    const { toggleDefault } = useDevicesContext();
 
     const handleAction = async () => {
         await LocalStorage.removeItem(LOCAL_STORAGE.DEFAULT_DEVICE);
-
-        devices.forEach((element, index) => {
-            if (element.device_id === selectedItem.device_id) {
-                devices[index].default = false;
-            }
-        });
-
+        await toggleDefault(selectedItem, false);
         await showToast(Toast.Style.Success, `Device "${selectedItem.alias}" unset default`);
     };
 

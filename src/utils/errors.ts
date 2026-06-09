@@ -8,13 +8,6 @@ export function getDisplayableErrorMessage(error: unknown) {
     return undefined;
 }
 
-export class InvalidSecretError extends DisplayableError {
-    constructor(message?: string) {
-        super(message ?? "Failed to load devices items. Invalid secret.");
-        this.name = "InvalidSecretError";
-    }
-}
-
 export class CaptchaNeededError extends DisplayableError {
     captchaSid: string | undefined;
 

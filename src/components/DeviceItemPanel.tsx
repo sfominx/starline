@@ -17,7 +17,7 @@ import SetAsDefaultDeviceAction from "./actions/SetAsDefaultDevice";
 import UnsetAsDefaultDeviceAction from "./actions/UnsetAsDefaultDevice";
 
 function DevicesItemActionPanel() {
-    const { device_id: deviceId } = useSelectedDeviceItem();
+    const { device_id: deviceId, default: isDefault } = useSelectedDeviceItem();
 
     return (
         <ActionPanel>
@@ -33,8 +33,7 @@ function DevicesItemActionPanel() {
                 <AdditionalSensorBypassAction />
                 <ServiceModeEnableAction />
                 <ServiceModeDisableAction />
-                <SetAsDefaultDeviceAction />
-                <UnsetAsDefaultDeviceAction />
+                {isDefault ? <UnsetAsDefaultDeviceAction /> : <SetAsDefaultDeviceAction />}
             </ActionPanel.Section>
 
             {environment.isDevelopment && (

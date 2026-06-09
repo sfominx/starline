@@ -13,7 +13,7 @@ type ItemListener = (item: Item | FailedToLoadDevicesItemsError) => void;
 
 type DevicesListenersContextType = {
     listeners: MutableRefObject<Map<string, ItemListener>>;
-    subscribeItem: () => () => void;
+    subscribeItem: (itemId: string, listener: ItemListener) => () => void;
     publishItems: (items: Item[] | FailedToLoadDevicesItemsError) => void;
 };
 
@@ -57,5 +57,43 @@ export const useDevicesItemPublisher = () => {
 
     return context.publishItems;
 };
+
+/** Allows you to subscribe to a specific item and get notified when it changes. */
+export const useVaultItemSubscriber = () => {
+    const context = useContext(DevicesListenersContext);
+    if (context == null)
+        throw new Error("useVaultItemSubscriber must be used within a VaultListenersProvider");
+
+    return (itemId: string) => {
+        let timeoutId: NodeJS.Timeout;
+
+        return new Promise<Item>((resolve, reject) => {
+            const unsubscribe = context.subscribeItem(itemId, (itemOrError) => {
+                try {
+                    unsubscribe();
+                    if (itemOrError instanceof FailedToLoadDevicesItemsError) {
+                        throw itemOrError;
+                    }
+                    resolve(itemOrError);
+                    clearTimeout(timeoutId);
+                } catch (error) {
+                    reject(error);
+                }
+            });
+
+            timeoutId = setTimeout(() => {
+                unsubscribe();
+                reject(new SubscriberTimeoutError());
+            }, 15000);
+        });
+    };
+};
+
+class SubscriberTimeoutError extends Error {
+    constructor() {
+        super("Timed out waiting for item");
+        this.name = "SubscriberTimeoutError";
+    }
+}
 
 export default DevicesListenersProvider;
