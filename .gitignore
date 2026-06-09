@@ -11,3 +11,8 @@ compiled_raycast_swift
 # misc
 .DS_Store
 logs/
+
+# local-only planning / agent files
+CLAUDE.md
+docs/
+tasks/
