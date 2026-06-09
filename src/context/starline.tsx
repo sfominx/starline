@@ -11,7 +11,7 @@ export function StarLineProvider(props: StarLineProviderProps) {
     const [starline, setStarLine] = useState<StarLine>();
 
     useEffect(() => {
-        new StarLine().initialize().then(setStarLine);
+        void new StarLine().initialize().then(setStarLine).catch(undefined);
     }, []);
 
     if (!starline) return <DevicesLoadingFallback />;

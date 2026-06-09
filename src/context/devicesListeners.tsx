@@ -9,12 +9,12 @@ import React, {
 import { Item } from "../types/devices";
 import { FailedToLoadDevicesItemsError } from "../utils/errors";
 
-type ItemListener = () => void;
+type ItemListener = (item: Item | FailedToLoadDevicesItemsError) => void;
 
 type DevicesListenersContextType = {
     listeners: MutableRefObject<Map<string, ItemListener>>;
     subscribeItem: () => () => void;
-    publishItems: () => void;
+    publishItems: (items: Item[] | FailedToLoadDevicesItemsError) => void;
 };
 
 const DevicesListenersContext = createContext<DevicesListenersContextType | null>(null);

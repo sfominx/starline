@@ -60,7 +60,7 @@ export function DevicesProvider(props: DevicesProviderProps) {
                     devices = itemsResult.result.devices;
                 }
             } catch (error) {
-                if (error.name === "CaptchaNeededError") {
+                if (error instanceof Error && error.name === "CaptchaNeededError") {
                     setState({
                         captchaNeeded: true,
                         isLoading: false,
@@ -92,7 +92,7 @@ export function DevicesProvider(props: DevicesProviderProps) {
     }
 
     useOnceEffect(() => {
-        loadItems();
+        void loadItems();
     }, true);
 
     const memoizedValue: DevicesContextType = useMemo(

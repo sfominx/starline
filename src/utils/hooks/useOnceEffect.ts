@@ -11,7 +11,7 @@ function useOnceEffect(effect: Effect, condition?: unknown) {
         if (hasRun.current) return;
         if (!condition) return;
         hasRun.current = true;
-        effect();
+        void effect();
     }, [condition]);
 }
 

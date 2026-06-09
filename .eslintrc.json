@@ -1,32 +1,22 @@
 {
     "root": true,
-    "extends": ["@raycast", "airbnb"],
-    "rules": {
-        "object-curly-newline": "off",
-        "indent": ["error", 4],
-        "react/jsx-indent": ["error", 4],
-        "react/jsx-indent-props": ["error", 4],
-        "quotes": ["error", "double"],
-        "react/jsx-filename-extension": [1, { "extensions": [".ts", ".tsx"] }],
-        "import/extensions": [
-            "error",
-            "ignorePackages",
-            {
-                "js": "never",
-                "jsx": "never",
-                "ts": "never",
-                "tsx": "never"
-            }
-        ],
-        "react/jsx-wrap-multilines": "off"
+    "env": {
+      "es2020": true,
+      "node": true
     },
-    "settings": {
-        "import/resolver": {
-            "typescript": {},
-            "node": {
-                "extensions": [".js", ".jsx", ".d.ts", ".ts", ".tsx"],
-                "moduleDirectory": ["node_modules", "src/"]
-            }
-        }
-    }
-}
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": { "project": "./tsconfig.json" },
+    "plugins": ["@typescript-eslint", "react-hooks", "prettier"],
+    "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "plugin:promise/recommended", "prettier"],
+    "rules": {
+      "prettier/prettier": ["error"],
+      "@typescript-eslint/no-unnecessary-type-constraint": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-floating-promises": ["error"],
+      "react-hooks/rules-of-hooks": "error",
+      "@typescript-eslint/ban-ts-comment": "off",
+      "promise/always-return": "off"
+    },
+    "ignorePatterns": ["raycast-env.d.ts"]  
+  }
+  

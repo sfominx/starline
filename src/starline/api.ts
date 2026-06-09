@@ -141,9 +141,9 @@ export class StarLine {
 
             if (data.state === 0) {
                 if (
-                    data.desc.message === "Captcha needed."
-                    && data.desc.captchaSid
-                    && data.desc.captchaImg
+                    data.desc.message === "Captcha needed." &&
+                    data.desc.captchaSid &&
+                    data.desc.captchaImg
                 ) {
                     await LocalStorage.setItem(LOCAL_STORAGE.CAPTCHA_SID, data.desc.captchaSid);
                     await LocalStorage.setItem(LOCAL_STORAGE.CAPTCHA_IMG, data.desc.captchaImg);
