@@ -45,18 +45,17 @@ export class StarLineCommands extends StarLineClient {
         return { type, [type]: value };
     }
 
-    async sendCommand<T = unknown>(
-        deviceId: string,
-        type: string,
-        value: StarLineCommandValue = 1,
-    ) {
+    sendCommand<T = unknown>(deviceId: string, type: string, value: StarLineCommandValue = 1) {
         /**
          * Execute device command via legacy blocking /set_param endpoint.
          */
-        return this.request<T>(deviceSetParamUrl(deviceId), "post", this.commandBody(type, value));
+        return this.request<T>(deviceSetParamUrl(deviceId), {
+            method: "post",
+            body: this.commandBody(type, value),
+        });
     }
 
-    async sendAsyncCommand<T = AsyncCommandResponse>(
+    sendAsyncCommand<T = AsyncCommandResponse>(
         deviceId: string,
         type: string,
         value: StarLineCommandValue = 1,
@@ -65,10 +64,10 @@ export class StarLineCommands extends StarLineClient {
          * Execute device command via non-blocking /async endpoint.
          */
         const url = `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/async`;
-        return this.request<T>(url, "post", { type, value });
+        return this.request<T>(url, { method: "post", body: { type, value } });
     }
 
-    async getAsyncCommandStatus<T = AsyncCommandResponse>(deviceId: string, commandId: string) {
+    getAsyncCommandStatus<T = AsyncCommandResponse>(deviceId: string, commandId: string) {
         const url = `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/async/${commandId}`;
         return this.request<T>(url);
     }
@@ -102,7 +101,7 @@ export class StarLineCommands extends StarLineClient {
     async sendAsyncCommandAndWait(
         deviceId: string,
         type: string,
-        value: StarLineCommandValue = 1,
+        value: StarLineCommandValue,
         options?: AsyncCommandOptions,
     ) {
         const response = await this.sendAsyncCommand(deviceId, type, value);
@@ -125,7 +124,7 @@ export class StarLineCommands extends StarLineClient {
     async sendCommandWithAsyncFallback<T = unknown>(
         deviceId: string,
         type: string,
-        value: StarLineCommandValue = 1,
+        value: StarLineCommandValue,
         options?: AsyncCommandOptions,
     ) {
         try {
@@ -135,127 +134,127 @@ export class StarLineCommands extends StarLineClient {
         }
     }
 
-    async startEngine(deviceId: string) {
-        return this.sendCommandWithAsyncFallback(deviceId, "ign_start");
+    startEngine(deviceId: string) {
+        return this.sendCommandWithAsyncFallback(deviceId, "ign_start", 1);
     }
 
-    async stopEngine(deviceId: string) {
-        return this.sendCommandWithAsyncFallback(deviceId, "ign_stop");
+    stopEngine(deviceId: string) {
+        return this.sendCommandWithAsyncFallback(deviceId, "ign_stop", 1);
     }
 
-    async engineOn(deviceId: string) {
+    engineOn(deviceId: string) {
         return this.sendCommand(deviceId, "ign", 1);
     }
 
-    async engineOff(deviceId: string) {
+    engineOff(deviceId: string) {
         return this.sendCommand(deviceId, "ign", 0);
     }
 
-    async arm(deviceId: string): Promise<CarStatus> {
+    arm(deviceId: string): Promise<CarStatus> {
         return this.sendCommand<CarStatus>(deviceId, "arm_start");
     }
 
-    async disarm(deviceId: string): Promise<CarStatus> {
+    disarm(deviceId: string): Promise<CarStatus> {
         return this.sendCommand<CarStatus>(deviceId, "arm_stop");
     }
 
-    async armQuietly(deviceId: string): Promise<CarStatus> {
+    armQuietly(deviceId: string): Promise<CarStatus> {
         return this.sendCommand<CarStatus>(deviceId, "arm_quiet", 1);
     }
 
-    async disarmQuietly(deviceId: string): Promise<CarStatus> {
+    disarmQuietly(deviceId: string): Promise<CarStatus> {
         return this.sendCommand<CarStatus>(deviceId, "arm_quiet", 0);
     }
 
-    async armStartQuietly(deviceId: string): Promise<CarStatus> {
+    armStartQuietly(deviceId: string): Promise<CarStatus> {
         return this.sendCommand<CarStatus>(deviceId, "arm_start_quiet");
     }
 
-    async armStopQuietly(deviceId: string): Promise<CarStatus> {
+    armStopQuietly(deviceId: string): Promise<CarStatus> {
         return this.sendCommand<CarStatus>(deviceId, "arm_stop_quiet");
     }
 
-    async shockSensorBypass(deviceId: string) {
+    shockSensorBypass(deviceId: string) {
         return this.sendCommand(deviceId, "shock_bpass");
     }
 
-    async tiltSensorBypass(deviceId: string) {
+    tiltSensorBypass(deviceId: string) {
         return this.sendCommand(deviceId, "tilt_bpass");
     }
 
-    async additionalSensorBypass(deviceId: string) {
+    additionalSensorBypass(deviceId: string) {
         return this.sendCommand(deviceId, "add_sens_bpass");
     }
 
-    async serviceModeEnable(deviceId: string) {
+    serviceModeEnable(deviceId: string) {
         return this.sendCommand(deviceId, "valet", 1);
     }
 
-    async serviceModeDisable(deviceId: string) {
+    serviceModeDisable(deviceId: string) {
         return this.sendCommand(deviceId, "valet", 0);
     }
 
-    async handsFreeModeEnable(deviceId: string) {
+    handsFreeModeEnable(deviceId: string) {
         return this.sendCommand(deviceId, "hfree", 1);
     }
 
-    async handsFreeModeDisable(deviceId: string) {
+    handsFreeModeDisable(deviceId: string) {
         return this.sendCommand(deviceId, "hfree", 0);
     }
 
-    async horn(deviceId: string) {
-        return this.sendCommandWithAsyncFallback(deviceId, "poke");
+    horn(deviceId: string) {
+        return this.sendCommandWithAsyncFallback(deviceId, "poke", 1);
     }
 
-    async disarmTrunk(deviceId: string) {
+    disarmTrunk(deviceId: string) {
         return this.sendCommand(deviceId, "disarm_trunk");
     }
 
-    async panic(deviceId: string) {
+    panic(deviceId: string) {
         return this.sendCommand(deviceId, "panic");
     }
 
-    async getBalance(deviceId: string, simNumber: 1 | 2 = 1) {
+    getBalance(deviceId: string, simNumber: 1 | 2 = 1) {
         return this.sendCommand(deviceId, "getbalance", simNumber);
     }
 
-    async updatePosition(deviceId: string) {
-        return this.sendCommandWithAsyncFallback(deviceId, "update_position");
+    updatePosition(deviceId: string) {
+        return this.sendCommandWithAsyncFallback(deviceId, "update_position", 1);
     }
 
-    async outputOn(deviceId: string) {
+    outputOn(deviceId: string) {
         return this.sendCommand(deviceId, "out", 1);
     }
 
-    async outputOff(deviceId: string) {
+    outputOff(deviceId: string) {
         return this.sendCommand(deviceId, "out", 0);
     }
 
-    async dvrOn(deviceId: string) {
+    dvrOn(deviceId: string) {
         return this.sendCommand(deviceId, "dvr", 1);
     }
 
-    async dvrOff(deviceId: string) {
+    dvrOff(deviceId: string) {
         return this.sendCommand(deviceId, "dvr", 0);
     }
 
-    async webastoEnable(deviceId: string) {
+    webastoEnable(deviceId: string) {
         return this.sendCommand(deviceId, "webasto", 1);
     }
 
-    async webastoDisable(deviceId: string) {
+    webastoDisable(deviceId: string) {
         return this.sendCommand(deviceId, "webasto", 0);
     }
 
-    async webastoOn(deviceId: string) {
-        return this.sendCommandWithAsyncFallback(deviceId, "webasto_on");
+    webastoOn(deviceId: string) {
+        return this.sendCommandWithAsyncFallback(deviceId, "webasto_on", 1);
     }
 
-    async webastoOff(deviceId: string) {
-        return this.sendCommandWithAsyncFallback(deviceId, "webasto_off");
+    webastoOff(deviceId: string) {
+        return this.sendCommandWithAsyncFallback(deviceId, "webasto_off", 1);
     }
 
-    async flex(deviceId: string, number: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9) {
+    flex(deviceId: string, number: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9) {
         return this.sendCommand(deviceId, `flex_${number}`);
     }
 }

@@ -95,7 +95,7 @@
         "eqeqeq": ["error", "always"],
         "curly": ["error", "all"],
         "default-case-last": "error",
-        "default-param-last": "off",
+        "default-param-last": "error",
         "dot-notation": "error",
         "lines-between-class-members": ["error", "always"],
         "no-alert": "error",
@@ -121,7 +121,7 @@
         "object-shorthand": ["error", "always"],
         "prefer-const": "error",
         "prefer-template": "error",
-        "require-await": "off",
+        "require-await": "error",
         "yoda": "error",
 
         "import/no-cycle": "error",

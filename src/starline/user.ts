@@ -19,20 +19,18 @@ export class StarLineUserApi extends StarLineSettingsApi {
 
     async postLbsPosition<T = unknown>(body: unknown) {
         const { userId } = await this.auth();
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v1/user/${userId}/lbs_position`,
-            "post",
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/user/${userId}/lbs_position`, {
+            method: "post",
             body,
-        );
+        });
     }
 
     async enableDataTransfer<T = unknown>(body: unknown) {
         const { userId } = await this.auth();
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v1/user/${userId}/data_transfer`,
-            "post",
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/user/${userId}/data_transfer`, {
+            method: "post",
             body,
-        );
+        });
     }
 
     async getDataTransfer<T = unknown>() {
@@ -42,10 +40,9 @@ export class StarLineUserApi extends StarLineSettingsApi {
 
     async disableDataTransfer<T = unknown>() {
         const { userId } = await this.auth();
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v1/user/${userId}/data_transfer`,
-            "delete",
-        );
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/user/${userId}/data_transfer`, {
+            method: "delete",
+        });
     }
 
     async getDeviceList<T = unknown>() {

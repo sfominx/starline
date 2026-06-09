@@ -11,6 +11,8 @@ import { DEVELOPER_STARLINE, ID_STARLINE, LOCAL_STORAGE } from "./constants";
 export type HttpMethod = "get" | "post" | "delete";
 
 export type RequestOptions = {
+    method?: HttpMethod;
+    body?: unknown;
     retryOnAuthError?: boolean;
 };
 
@@ -76,7 +78,7 @@ export class StarLineClient {
         );
     }
 
-    async clearAuthCache() {
+    clearAuthCache() {
         return StarLineClient.clearAuthCache();
     }
 
@@ -268,15 +270,11 @@ export class StarLineClient {
         ]);
     }
 
-    protected async request<T = unknown>(
-        url: string,
-        method: HttpMethod = "get",
-        body?: unknown,
-        options: RequestOptions = { retryOnAuthError: true },
-    ): Promise<T> {
+    protected async request<T = unknown>(url: string, options: RequestOptions = {}): Promise<T> {
         /**
          * Make WebAPI call with SLNet cookie auth.
          */
+        const { method = "get", body, retryOnAuthError = true } = options;
         const { slnetUserToken } = await this.auth();
 
         const response = await fetch(url, {
@@ -295,9 +293,9 @@ export class StarLineClient {
             return data;
         }
 
-        if (options.retryOnAuthError === true && isAuthError(response.status, data)) {
+        if (retryOnAuthError && isAuthError(response.status, data)) {
             await this.clearWebApiAuthCache();
-            return this.request<T>(url, method, body, { retryOnAuthError: false });
+            return this.request<T>(url, { method, body, retryOnAuthError: false });
         }
 
         const errorData = data as { message?: string; codestring?: string };

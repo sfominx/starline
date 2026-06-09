@@ -34,107 +34,102 @@ export class StarLineDeviceApi extends StarLineCommands {
         return { result: data };
     }
 
-    async getControlsLibrary<T = ControlsLibraryResponse>(deviceId: string) {
+    getControlsLibrary<T = ControlsLibraryResponse>(deviceId: string) {
         return this.request<T>(`${DEVELOPER_STARLINE}json/device/${deviceId}/ctrls_library`);
     }
 
-    async getDeviceInfo<T = unknown>(deviceId: string) {
+    getDeviceInfo<T = unknown>(deviceId: string) {
         return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/info`);
     }
 
-    async updateDeviceInfo<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/info`,
-            "post",
+    updateDeviceInfo<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/info`, {
+            method: "post",
             body,
-        );
+        });
     }
 
-    async getWays<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/ways`,
-            "post",
+    getWays<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/ways`, {
+            method: "post",
             body,
-        );
+        });
     }
 
-    async updateControls<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/controls`,
-            "post",
+    updateControls<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v2/device/${deviceId}/controls`, {
+            method: "post",
             body,
-        );
+        });
     }
 
-    async getObdParams<T = ObdParamsResponse>(deviceId: string) {
+    getObdParams<T = ObdParamsResponse>(deviceId: string) {
         return this.request<T>(`${DEVELOPER_STARLINE}json/device/${deviceId}/obd_params`);
     }
 
-    async getPosition<T = DevicePositionResponse>(deviceId: string) {
+    getPosition<T = DevicePositionResponse>(deviceId: string) {
         return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/position`);
     }
 
-    async getState<T = DeviceStateResponse>(deviceId: string) {
+    getState<T = DeviceStateResponse>(deviceId: string) {
         return this.request<T>(`${DEVELOPER_STARLINE}json/v2/device/${deviceId}/state`);
     }
 
-    async getEvents<T = DeviceEventsResponse>(deviceId: string, body: unknown) {
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/events`,
-            "post",
+    getEvents<T = DeviceEventsResponse>(deviceId: string, body: unknown) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v2/device/${deviceId}/events`, {
+            method: "post",
             body,
-        );
+        });
     }
 
-    async getEventDescription<T = unknown>(eventId: string) {
+    getEventDescription<T = unknown>(eventId: string) {
         return this.request<T>(`${DEVELOPER_STARLINE}json/v3/library/events/${eventId}`);
     }
 
-    async getEventsLibrary<T = unknown>() {
+    getEventsLibrary<T = unknown>() {
         return this.request<T>(`${DEVELOPER_STARLINE}json/v3/library/events`);
     }
 
-    async getObdErrors<T = ObdErrorsResponse>(deviceId: string) {
+    getObdErrors<T = ObdErrorsResponse>(deviceId: string) {
         return this.request<T>(`${DEVELOPER_STARLINE}json/device/${deviceId}/obd_errors`);
     }
 
-    async getDeviceData<T = unknown>(deviceId: string) {
+    getDeviceData<T = unknown>(deviceId: string) {
         return this.request<T>(`${DEVELOPER_STARLINE}json/v3/device/${deviceId}/data`);
     }
 
-    async getDeviceReport<T = unknown>(deviceId: string) {
+    getDeviceReport<T = unknown>(deviceId: string) {
         return this.request<T>(`${DEVELOPER_STARLINE}json/v2/device/${deviceId}`);
     }
 
-    async getDrivingScore<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/driving_score`,
-            "post",
+    getDrivingScore<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v2/device/${deviceId}/driving_score`, {
+            method: "post",
             body,
-        );
+        });
     }
 
-    async getDrivingScoreHistory<T = unknown>(deviceId: string, body: unknown) {
+    getDrivingScoreHistory<T = unknown>(deviceId: string, body: unknown) {
         return this.request<T>(
             `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/driving_score_history`,
-            "post",
-            body,
+            {
+                method: "post",
+                body,
+            },
         );
     }
 
-    async getObdData<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/getObdData`,
-            "post",
+    getObdData<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/getObdData`, {
+            method: "post",
             body,
-        );
+        });
     }
 
-    async getDetails<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/details`,
-            "post",
+    getDetails<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/details`, {
+            method: "post",
             body,
-        );
+        });
     }
 }
