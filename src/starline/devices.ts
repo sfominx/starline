@@ -2,6 +2,14 @@ import { LocalStorage } from "@raycast/api";
 import { DEVELOPER_STARLINE, LOCAL_STORAGE } from "./constants";
 import { StarLineCommands } from "./commands";
 import { Devices } from "../types/devices";
+import {
+    ControlsLibraryResponse,
+    DeviceEventsResponse,
+    DevicePositionResponse,
+    DeviceStateResponse,
+    ObdErrorsResponse,
+    ObdParamsResponse,
+} from "../types/starline";
 
 export class StarLineDeviceApi extends StarLineCommands {
     async getDevices(): Promise<{ result?: Devices; error?: string }> {
@@ -27,7 +35,7 @@ export class StarLineDeviceApi extends StarLineCommands {
         return { error: "error" };
     }
 
-    async getControlsLibrary<T = unknown>(deviceId: string) {
+    async getControlsLibrary<T = ControlsLibraryResponse>(deviceId: string) {
         return this.request<T>(`${DEVELOPER_STARLINE}json/device/${deviceId}/ctrls_library`);
     }
 
@@ -59,19 +67,19 @@ export class StarLineDeviceApi extends StarLineCommands {
         );
     }
 
-    async getObdParams<T = unknown>(deviceId: string) {
+    async getObdParams<T = ObdParamsResponse>(deviceId: string) {
         return this.request<T>(`${DEVELOPER_STARLINE}json/device/${deviceId}/obd_params`);
     }
 
-    async getPosition<T = unknown>(deviceId: string) {
+    async getPosition<T = DevicePositionResponse>(deviceId: string) {
         return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/position`);
     }
 
-    async getState<T = unknown>(deviceId: string) {
+    async getState<T = DeviceStateResponse>(deviceId: string) {
         return this.request<T>(`${DEVELOPER_STARLINE}json/v2/device/${deviceId}/state`);
     }
 
-    async getEvents<T = unknown>(deviceId: string, body: unknown) {
+    async getEvents<T = DeviceEventsResponse>(deviceId: string, body: unknown) {
         return this.request<T>(
             `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/events`,
             "post",
@@ -87,7 +95,7 @@ export class StarLineDeviceApi extends StarLineCommands {
         return this.request<T>(`${DEVELOPER_STARLINE}json/v3/library/events`);
     }
 
-    async getObdErrors<T = unknown>(deviceId: string) {
+    async getObdErrors<T = ObdErrorsResponse>(deviceId: string) {
         return this.request<T>(`${DEVELOPER_STARLINE}json/device/${deviceId}/obd_errors`);
     }
 

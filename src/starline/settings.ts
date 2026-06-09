@@ -1,5 +1,6 @@
 import { DEVELOPER_STARLINE } from "./constants";
 import { StarLineDeviceApi } from "./devices";
+import { DeviceSettingsResponse } from "../types/starline";
 
 export class StarLineSettingsApi extends StarLineDeviceApi {
     async putComfortOptions<T = unknown>(deviceId: string, body: unknown) {
@@ -48,7 +49,7 @@ export class StarLineSettingsApi extends StarLineDeviceApi {
         );
     }
 
-    async getSettings<T = unknown>(deviceId: string) {
+    async getSettings<T = DeviceSettingsResponse>(deviceId: string) {
         return this.request<T>(`${DEVELOPER_STARLINE}json/v4/device/${deviceId}/settings`);
     }
 }
