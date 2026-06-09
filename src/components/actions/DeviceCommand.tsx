@@ -1,26 +1,16 @@
-import { Action, Alert, confirmAlert } from "@raycast/api";
+import { Action } from "@raycast/api";
 import { useMemo } from "react";
 
 import { useOptionalDevicesContext } from "../../context/devices";
 import { useOptionalStarLine } from "../../context/starline";
 import { StarLine } from "../../starline/api";
 import { DEVICE_ACTIONS } from "../../starline/commandConfig";
+import { confirmDeviceCommand } from "../../utils/confirmCommand";
 import { runDeviceCommand } from "../../utils/runDeviceCommand";
 import { useSelectedDeviceItem } from "../context/deviceItem";
 
 import type { DeviceActionKey, DeviceCommandConfig } from "../../starline/commandConfig";
 import type { CarStatus, Item } from "../../types/devices";
-
-const isConfirmed = (confirmation: DeviceCommandConfig["confirmation"], fallbackTitle: string) =>
-    confirmation === undefined ||
-    confirmAlert({
-        title: confirmation.title,
-        message: confirmation.message,
-        primaryAction: {
-            title: confirmation.primaryActionTitle ?? fallbackTitle,
-            style: confirmation.style ?? Alert.ActionStyle.Default,
-        },
-    });
 
 const updateArmState = (target: Item, result: unknown) => {
     const isArmed = (result as CarStatus).arm === "1";
@@ -39,7 +29,7 @@ function DeviceCommandAction(config: DeviceCommandConfig) {
     const starline = contextStarLine ?? fallbackStarLine;
 
     const handleAction = async () => {
-        if (!(await isConfirmed(confirmation, title))) {
+        if (!(await confirmDeviceCommand(confirmation, title))) {
             return;
         }
 

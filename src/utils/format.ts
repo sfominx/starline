@@ -67,13 +67,17 @@ export function jsonCodeBlock(value: unknown, spaces = 2) {
 }
 
 export function markdownTable(headers: string[], rows: MarkdownRow[]) {
-    const header = `| ${headers.join(" | ")} |`;
+    const header = `| ${headers.map(markdownCell).join(" | ")} |`;
     const divider = `| ${headers.map(() => "---").join(" | ")} |`;
-    const body = rows.map((row) => `| ${row.map(displayString).join(" | ")} |`);
+    const body = rows.map((row) => `| ${row.map(markdownCell).join(" | ")} |`);
 
     return [header, divider, ...(body.length > 0 ? body : [emptyTableRow(headers.length)])].join(
         "\n",
     );
+}
+
+function markdownCell(value: unknown) {
+    return displayString(value).replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>");
 }
 
 function emptyTableRow(columns: number) {

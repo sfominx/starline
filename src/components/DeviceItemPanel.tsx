@@ -221,9 +221,11 @@ function DevicesItemActionPanel({ showDetailsAction = true }: { showDetailsActio
                 <DetailActions items={DEVICE_DETAIL_ACTIONS} />
             </ActionPanel.Section>
 
-            <ActionPanel.Section title="Settings / Advanced JSON Forms">
-                <JsonFormActions items={JSON_FORM_ACTIONS} />
-            </ActionPanel.Section>
+            {environment.isDevelopment && (
+                <ActionPanel.Section title="Settings / Advanced JSON Forms">
+                    <JsonFormActions items={JSON_FORM_ACTIONS} />
+                </ActionPanel.Section>
+            )}
 
             <ActionPanel.Section title="Advanced Commands">
                 {ADVANCED_COMMANDS.map((command) => (

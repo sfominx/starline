@@ -1,8 +1,10 @@
 import React from "react";
 
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
 function createComponent(name: string) {
-    const Component = ({ children }: { children?: React.ReactNode }) =>
-        React.createElement(name, null, children);
+    const Component = ({ children, ...props }: { children?: React.ReactNode }) =>
+        React.createElement(name, props, children);
     Component.displayName = name;
     return Component;
 }

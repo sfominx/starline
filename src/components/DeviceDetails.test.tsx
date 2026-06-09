@@ -1,4 +1,4 @@
-import TestRenderer from "react-test-renderer";
+import { act, create } from "react-test-renderer";
 
 import DeviceDetails from "./DeviceDetails";
 
@@ -56,6 +56,10 @@ describe("DeviceDetails", () => {
     });
 
     it("renders when optional balance fields are missing", () => {
-        expect(() => TestRenderer.create(<DeviceDetails item={item} />)).not.toThrow();
+        expect(() => {
+            act(() => {
+                create(<DeviceDetails item={item} />);
+            });
+        }).not.toThrow();
     });
 });

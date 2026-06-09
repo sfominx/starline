@@ -27,4 +27,13 @@ describe("StarLineClient", () => {
             "upstream unavailable",
         );
     });
+
+    it("rejects API envelopes with unsuccessful codes even when HTTP status is 200", async () => {
+        jest.mocked(fetch).mockResolvedValue({
+            status: 200,
+            text: () => Promise.resolve(JSON.stringify({ code: 500, codestring: "failed" })),
+        } as never);
+
+        await expect(new TestStarLineClient().callRequest()).rejects.toThrow("failed");
+    });
 });

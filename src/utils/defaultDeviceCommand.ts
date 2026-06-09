@@ -4,6 +4,7 @@ import { StarLine } from "../starline/api";
 import { DEVICE_ACTIONS } from "../starline/commandConfig";
 import { LOCAL_STORAGE } from "../starline/constants";
 
+import { confirmDeviceCommand } from "./confirmCommand";
 import { runDeviceCommand } from "./runDeviceCommand";
 
 import type { DeviceActionKey } from "../starline/commandConfig";
@@ -23,8 +24,14 @@ export default async function defaultDeviceCommand(command: DeviceActionKey) {
         return;
     }
 
+    const config = DEVICE_ACTIONS[command];
+
+    if (!(await confirmDeviceCommand(config.confirmation, config.title))) {
+        return;
+    }
+
     await runDeviceCommand({
-        ...DEVICE_ACTIONS[command],
+        ...config,
         deviceId: deviceId.toString(),
         starline: new StarLine(),
     });

@@ -145,7 +145,7 @@ function formatPosition({ device }: DevicePositionResponse) {
             ["Latitude", position.lat],
             ["Longitude", position.lon],
             ["Precision", position.pres === undefined ? EMPTY_VALUE : `${position.pres} m`],
-            ["Timestamp", displayString(position.ts)],
+            ["Timestamp", formatUnixTimestamp(position.ts)],
         ],
     );
 }

@@ -90,6 +90,11 @@ function apiFailureMessage(data: unknown) {
     return message ?? codestring ?? "API call failed";
 }
 
+function isFailedApiEnvelope(data: unknown) {
+    const { code } = data as { code?: number };
+    return code !== undefined && code !== 200;
+}
+
 export class StarLineClient {
     private readonly appId: string;
 
@@ -248,7 +253,7 @@ export class StarLineClient {
         });
         const data = await readOptionalJson<T>(response);
 
-        if (response.status === 200) {
+        if (response.status === 200 && !isFailedApiEnvelope(data)) {
             return data;
         }
 

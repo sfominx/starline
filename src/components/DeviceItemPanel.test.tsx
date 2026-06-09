@@ -1,4 +1,6 @@
-import { create } from "react-test-renderer";
+import { act, create } from "react-test-renderer";
+
+import type { ReactTestRenderer } from "react-test-renderer";
 
 import DevicesItemContext from "./context/deviceItem";
 import DevicesItemActionPanel from "./DeviceItemPanel";
@@ -94,12 +96,38 @@ describe("DevicesItemActionPanel", () => {
     });
 
     it("renders outside DevicesProvider", () => {
-        expect(() =>
-            create(
+        expect(() => {
+            act(() => {
+                create(
+                    <DevicesItemContext.Provider value={item}>
+                        <DevicesItemActionPanel />
+                    </DevicesItemContext.Provider>,
+                );
+            });
+        }).not.toThrow();
+    });
+
+    it("hides advanced JSON mutation forms outside development", () => {
+        let renderer: ReactTestRenderer | undefined;
+
+        act(() => {
+            renderer = create(
                 <DevicesItemContext.Provider value={item}>
                     <DevicesItemActionPanel />
                 </DevicesItemContext.Provider>,
-            ),
-        ).not.toThrow();
+            );
+        });
+
+        if (renderer === undefined) {
+            throw new Error("Renderer was not created");
+        }
+
+        const advancedJsonSections = renderer.root.findAll(
+            (node) =>
+                node.type === "ActionPanel.Section" &&
+                node.props.title === "Settings / Advanced JSON Forms",
+        );
+
+        expect(advancedJsonSections).toHaveLength(0);
     });
 });
