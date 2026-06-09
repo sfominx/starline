@@ -15,21 +15,20 @@ export type ApiVersion = (typeof API_VERSION)[keyof typeof API_VERSION];
 export const LOCAL_STORAGE = {
     CAPTCHA_SID: "starline-captcha-sid",
     CAPTCHA_IMG: "starline-captcha-img",
-    APP_CODE: "starline-app-code",
-    APP_CODE_EOL: "starline-app-code-eol",
-    APP_TOKEN: "starline-app-token",
-    APP_TOKEN_EOL: "starline-app-token-eol",
-    SLID_USER_TOKEN: "starline-slid-user-token",
-    SLID_USER_TOKEN_EOL: "starline-slid-user-token-eol",
-    SLNET_TOKEN: "starline-slnet-token",
-    SLNET_TOKEN_EOL: "starline-slnet-token-eol",
     USER_ID: "starline-user-id",
     DEFAULT_DEVICE: "starline-default-device",
 } as const;
 
+export const AUTH_SECRET = {
+    APP_CODE: "app-code",
+    APP_TOKEN: "app-token",
+    SLID_USER_TOKEN: "slid-user-token",
+    SLNET_TOKEN: "slnet-token",
+} as const;
+
 export const SECRETS_LIFETIME_HOURS = {
-    [LOCAL_STORAGE.APP_CODE]: 1,
-    [LOCAL_STORAGE.APP_TOKEN]: 4,
-    [LOCAL_STORAGE.SLID_USER_TOKEN]: 4,
-    [LOCAL_STORAGE.SLNET_TOKEN]: 24,
+    [AUTH_SECRET.APP_CODE]: 1,
+    [AUTH_SECRET.APP_TOKEN]: 4,
+    [AUTH_SECRET.SLID_USER_TOKEN]: 4,
+    [AUTH_SECRET.SLNET_TOKEN]: 24,
 } as const;

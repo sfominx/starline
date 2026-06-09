@@ -33,7 +33,8 @@ const COMMAND_TYPES = {
     stopEngine: "ign_stop",
     arm: "arm_start",
     disarm: "arm_stop",
-    armQuietly: "arm_quiet",
+    armQuietly: "arm_start_quiet",
+    disarmQuietly: "arm_stop_quiet",
     shockSensorBypass: "shock_bpass",
     tiltSensorBypass: "tilt_bpass",
     additionalSensorBypass: "add_sens_bpass",
@@ -159,7 +160,7 @@ export class StarLineCommands extends StarLineClient {
     }
 
     disarmQuietly(deviceId: string) {
-        return this.carStatusCommand(deviceId, COMMAND_TYPES.armQuietly, 0);
+        return this.carStatusCommand(deviceId, COMMAND_TYPES.disarmQuietly, 1);
     }
 
     shockSensorBypass(deviceId: string) {

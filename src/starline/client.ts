@@ -6,18 +6,14 @@ import fetch from "node-fetch";
 import { CaptchaNeededError, DisplayableError } from "../utils/errors";
 import { hasText } from "../utils/format";
 
-import { LOCAL_STORAGE, SECRETS_LIFETIME_HOURS, STARLINE_ORIGINS } from "./constants";
+import { AUTH_SECRET, LOCAL_STORAGE, SECRETS_LIFETIME_HOURS, STARLINE_ORIGINS } from "./constants";
 import { idApiV3Url } from "./urls";
 
 type HttpMethod = "get" | "post" | "delete";
 type RequestOptions = { method?: HttpMethod; body?: unknown; retryOnAuthError?: boolean };
 type ApiV3Response<TDesc extends Record<string, unknown>> = { state: number; desc: TDesc };
 type AuthTokens = { userId: string; slnetUserToken: string };
-type StoredSecretKey =
-    | typeof LOCAL_STORAGE.APP_CODE
-    | typeof LOCAL_STORAGE.APP_TOKEN
-    | typeof LOCAL_STORAGE.SLID_USER_TOKEN
-    | typeof LOCAL_STORAGE.SLNET_TOKEN;
+type StoredSecretKey = (typeof AUTH_SECRET)[keyof typeof AUTH_SECRET];
 type LoginResponse = ApiV3Response<{
     message?: string;
     captchaSid?: string;
@@ -27,9 +23,11 @@ type LoginResponse = ApiV3Response<{
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 const CAPTCHA_NEEDED_MESSAGE = "Captcha needed.";
-const AUTH_CACHE_KEYS = Object.values(LOCAL_STORAGE).filter(
-    (key) => key !== LOCAL_STORAGE.DEFAULT_DEVICE,
-);
+const AUTH_CACHE_KEYS = [
+    LOCAL_STORAGE.CAPTCHA_SID,
+    LOCAL_STORAGE.CAPTCHA_IMG,
+    LOCAL_STORAGE.USER_ID,
+];
 const HOUR_MS = 60 * 60 * 1000;
 const memorySecrets = new Map<StoredSecretKey, { value: string; expiresAt: number }>();
 
@@ -137,7 +135,7 @@ export class StarLineClient {
     }
 
     private getAppCode() {
-        return this.cachedSecret(LOCAL_STORAGE.APP_CODE, async () => {
+        return this.cachedSecret(AUTH_SECRET.APP_CODE, async () => {
             const response = await fetch(
                 idApiV3Url("application/getCode", { appId: this.appId, secret: md5(this.secret) }),
             );
@@ -148,7 +146,7 @@ export class StarLineClient {
     }
 
     private getAppToken() {
-        return this.cachedSecret(LOCAL_STORAGE.APP_TOKEN, async () => {
+        return this.cachedSecret(AUTH_SECRET.APP_TOKEN, async () => {
             const code = await this.getAppCode();
             const response = await fetch(
                 idApiV3Url("application/getToken", {
@@ -162,17 +160,13 @@ export class StarLineClient {
         });
     }
 
-    async loginWithCaptcha(captchaSid: string, captchaCode: string) {
-        memorySecrets.delete(LOCAL_STORAGE.SLID_USER_TOKEN);
-        await Promise.all([
-            LocalStorage.removeItem(LOCAL_STORAGE.SLID_USER_TOKEN),
-            LocalStorage.removeItem(LOCAL_STORAGE.SLID_USER_TOKEN_EOL),
-        ]);
+    loginWithCaptcha(captchaSid: string, captchaCode: string) {
+        memorySecrets.delete(AUTH_SECRET.SLID_USER_TOKEN);
         return this.login(captchaSid, captchaCode);
     }
 
     private login(captchaSid?: string, captchaCode?: string) {
-        return this.cachedSecret(LOCAL_STORAGE.SLID_USER_TOKEN, async () => {
+        return this.cachedSecret(AUTH_SECRET.SLID_USER_TOKEN, async () => {
             const data = await this.requestLogin(captchaSid, captchaCode);
 
             if (data.state === 0) {
@@ -215,7 +209,7 @@ export class StarLineClient {
     }
 
     protected async auth(): Promise<AuthTokens> {
-        const cachedToken = memorySecrets.get(LOCAL_STORAGE.SLNET_TOKEN);
+        const cachedToken = memorySecrets.get(AUTH_SECRET.SLNET_TOKEN);
         const cachedUserId = await LocalStorage.getItem(LOCAL_STORAGE.USER_ID);
 
         if (
@@ -238,9 +232,9 @@ export class StarLineClient {
             throw new DisplayableError("Failed to parse SLNet token from auth response");
         }
 
-        memorySecrets.set(LOCAL_STORAGE.SLNET_TOKEN, {
+        memorySecrets.set(AUTH_SECRET.SLNET_TOKEN, {
             value: slnetUserToken,
-            expiresAt: Date.now() + SECRETS_LIFETIME_HOURS[LOCAL_STORAGE.SLNET_TOKEN] * HOUR_MS,
+            expiresAt: Date.now() + SECRETS_LIFETIME_HOURS[AUTH_SECRET.SLNET_TOKEN] * HOUR_MS,
         });
         await LocalStorage.setItem(LOCAL_STORAGE.USER_ID, data.user_id);
 
@@ -248,12 +242,8 @@ export class StarLineClient {
     }
 
     protected async clearWebApiAuthCache() {
-        memorySecrets.delete(LOCAL_STORAGE.SLNET_TOKEN);
-        await Promise.all([
-            LocalStorage.removeItem(LOCAL_STORAGE.SLNET_TOKEN),
-            LocalStorage.removeItem(LOCAL_STORAGE.SLNET_TOKEN_EOL),
-            LocalStorage.removeItem(LOCAL_STORAGE.USER_ID),
-        ]);
+        memorySecrets.delete(AUTH_SECRET.SLNET_TOKEN);
+        await LocalStorage.removeItem(LOCAL_STORAGE.USER_ID);
     }
 
     protected async request<T = unknown>(url: string, options: RequestOptions = {}): Promise<T> {

@@ -64,14 +64,18 @@ describe("StarLineClient", () => {
 
         await new FullAuthStarLineClient().callRequest();
 
-        const persistedKeys = jest.mocked(LocalStorage.setItem).mock.calls.map(([key]) => key);
-        expect(persistedKeys).not.toEqual(
-            expect.arrayContaining([
-                LOCAL_STORAGE.APP_CODE,
-                LOCAL_STORAGE.APP_TOKEN,
-                LOCAL_STORAGE.SLID_USER_TOKEN,
-                LOCAL_STORAGE.SLNET_TOKEN,
-            ]),
-        );
+        expect(jest.mocked(LocalStorage.setItem).mock.calls).toEqual([
+            [LOCAL_STORAGE.USER_ID, "user-1"],
+        ]);
+    });
+
+    it("only clears persisted auth metadata from LocalStorage", async () => {
+        await StarLineClient.clearAuthCache();
+
+        expect(jest.mocked(LocalStorage.removeItem).mock.calls).toEqual([
+            [LOCAL_STORAGE.CAPTCHA_SID],
+            [LOCAL_STORAGE.CAPTCHA_IMG],
+            [LOCAL_STORAGE.USER_ID],
+        ]);
     });
 });

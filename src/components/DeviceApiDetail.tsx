@@ -96,16 +96,18 @@ const FORMATTERS: Partial<Record<DeviceApiDetailKind, DetailFormatter>> = {
     settings: (data) => formatSettings(data as DeviceSettingsResponse),
 };
 
-function formatControls({ controls }: ControlsLibraryResponse) {
-    const rows = Object.entries(controls).map(
+function formatControls({ controls }: Partial<ControlsLibraryResponse>) {
+    const rows = Object.entries(controls ?? {}).map(
         ([command, control]) => [`\`${command}\``, control.title] as MarkdownRow,
     );
 
     return markdownTable(["Command", "Title"], rows);
 }
 
-function formatState({ state }: DeviceStateResponse) {
-    const { car_state: carState, position } = state;
+function formatState({ state }: Partial<DeviceStateResponse>) {
+    const stateData = state as Partial<DeviceStateResponse["state"]> | undefined;
+    const carState: Partial<DeviceStateResponse["state"]["car_state"]> = stateData?.car_state ?? {};
+    const position = stateData?.position;
 
     return [
         markdownSection("Security", [
@@ -121,12 +123,12 @@ function formatState({ state }: DeviceStateResponse) {
             ["Webasto", enabledDisabledLabel(carState.webasto)],
         ]),
         markdownSection("Telemetry", [
-            ["Battery", displayString(state.battery)],
-            ["Cabin Temp", `${displayString(state.ctemp)}°C`],
-            ["Engine Temp", `${displayString(state.etemp)}°C`],
-            ["GPS Level", displayString(state.gps_lvl)],
-            ["GSM Level", displayString(state.gsm_lvl)],
-            ["Last Activity", formatUnixTimestamp(state.ts_activity)],
+            ["Battery", displayString(stateData?.battery)],
+            ["Cabin Temp", `${displayString(stateData?.ctemp)}°C`],
+            ["Engine Temp", `${displayString(stateData?.etemp)}°C`],
+            ["GPS Level", displayString(stateData?.gps_lvl)],
+            ["GSM Level", displayString(stateData?.gsm_lvl)],
+            ["Last Activity", formatUnixTimestamp(stateData?.ts_activity)],
         ]),
         markdownSection("Position", [
             ["X / Lat", displayString(position?.x)],
@@ -136,8 +138,8 @@ function formatState({ state }: DeviceStateResponse) {
     ].join("\n\n");
 }
 
-function formatPosition({ device }: DevicePositionResponse) {
-    const position = device.position ?? {};
+function formatPosition({ device }: Partial<DevicePositionResponse>) {
+    const position = device?.position ?? {};
 
     return markdownTable(
         ["Field", "Value"],
@@ -150,10 +152,14 @@ function formatPosition({ device }: DevicePositionResponse) {
     );
 }
 
-function formatEvents({ events }: DeviceEventsResponse) {
+function formatEvents({ events }: Partial<DeviceEventsResponse>) {
     return markdownTable(
         ["Time", "Group", "Type"],
-        events.map((event) => [formatUnixTimestamp(event.timestamp), event.groupId, event.type]),
+        (events ?? []).map((event) => [
+            formatUnixTimestamp(event.timestamp),
+            event.groupId,
+            event.type,
+        ]),
     );
 }
 
@@ -175,10 +181,10 @@ function formatObdParams({ obd_params: params, requirements }: ObdParamsResponse
     return `${markdownTable(["Field", "Value", "Timestamp"], rows)}\n\nMinimum firmware: ${displayString(requirements?.min_version)}`;
 }
 
-function formatObdErrors({ obd_errors: errors }: ObdErrorsResponse) {
+function formatObdErrors({ obd_errors: errors }: Partial<ObdErrorsResponse>) {
     return markdownTable(
         ["Error", "Time", "Warning", "Description"],
-        errors.map((error) => [
+        (errors ?? []).map((error) => [
             error.error,
             formatUnixTimestamp(error.error_ts),
             error.warning_level,
@@ -187,7 +193,7 @@ function formatObdErrors({ obd_errors: errors }: ObdErrorsResponse) {
     );
 }
 
-function formatSettings(data: DeviceSettingsResponse) {
+function formatSettings(data: Partial<DeviceSettingsResponse>) {
     const { general } = data;
 
     return `${markdownSection("General", [

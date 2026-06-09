@@ -2,7 +2,7 @@ import { StarLineCommands } from "./commands";
 
 import type { AsyncCommandResponse } from "../types/starline";
 
-type RecordedRequest = { url: string; options?: unknown };
+type RecordedRequest = { url: string; options?: { body?: unknown } };
 
 class TestStarLineCommands extends StarLineCommands {
     readonly requests: RecordedRequest[] = [];
@@ -11,7 +11,7 @@ class TestStarLineCommands extends StarLineCommands {
         super();
     }
 
-    protected request<T>(url: string, options?: unknown): Promise<T> {
+    protected request<T>(url: string, options?: { body?: unknown }): Promise<T> {
         this.requests.push({ url, options });
         return Promise.resolve(this.responses.shift() as T);
     }
@@ -32,5 +32,17 @@ describe("StarLineCommands", () => {
         );
 
         expect(client.requests).toHaveLength(1);
+    });
+
+    it("uses explicit quiet arm command types", async () => {
+        const client = new TestStarLineCommands([{}, {}]);
+
+        await client.armQuietly("42");
+        await client.disarmQuietly("42");
+
+        expect(client.requests.map(({ options }) => options?.body)).toEqual([
+            { type: "arm_start_quiet", arm_start_quiet: 1 },
+            { type: "arm_stop_quiet", arm_stop_quiet: 1 },
+        ]);
     });
 });
