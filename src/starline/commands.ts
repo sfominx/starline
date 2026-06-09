@@ -116,7 +116,7 @@ export class StarLineCommands extends StarLineClient {
             throw new Error(getAsyncCommandErrorMessage(response));
         }
 
-        if (!response.cmd_id) {
+        if (response.cmd_id === undefined || response.cmd_id.length === 0) {
             throw new Error("Async command response does not contain command id");
         }
 

@@ -16,7 +16,7 @@ function DevicesItem({ item }: DevicesItemProps) {
         <DevicesItemContext.Provider value={item}>
             <List.Item
                 id={item.device_id.toString()}
-                title={item.alias || item.phone}
+                title={item.alias.length > 0 ? item.alias : item.phone}
                 subtitle={`${item.car_state.run ? "Engine started" : "Engine stopped"}, Inside temp: ${item.ctemp}°C / Engine temp: ${item.etemp}°C`}
                 actions={<DevicesItemActionPanel />}
                 accessories={accessories}

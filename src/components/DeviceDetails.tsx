@@ -10,8 +10,12 @@ function boolLabel(value: boolean | undefined) {
     return value ? "Yes" : "No";
 }
 
+function displayString(value: string | undefined) {
+    return value !== undefined && value.length > 0 ? value : "—";
+}
+
 function formatDate(value: string | undefined) {
-    if (!value) {
+    if (value === undefined || value.length === 0) {
         return "—";
     }
     const timestamp = Number(value) * 1000;
@@ -27,7 +31,7 @@ type DeviceDetailsProps = {
 
 function DeviceDetails(props: DeviceDetailsProps) {
     const { item } = props;
-    const markdown = `# ${item.alias || item.phone}
+    const markdown = `# ${item.alias.length > 0 ? item.alias : item.phone}
 
 ## State
 
@@ -59,18 +63,18 @@ function DeviceDetails(props: DeviceDetailsProps) {
 | --- | --- |
 | Cabin temperature | ${item.ctemp}°C |
 | Engine temperature | ${item.etemp}°C |
-| Battery | ${item.battery || "—"} |
-| GSM level | ${item.gsm_lvl || "—"} |
-| Balance | ${item.balance.active.value || "—"} ${item.balance.active.currency || ""} |
+| Battery | ${displayString(item.battery)} |
+| GSM level | ${displayString(item.gsm_lvl)} |
+| Balance | ${displayString(item.balance.active.value)} ${item.balance.active.currency} |
 | Last activity | ${formatDate(item.ts_activity)} |
 
 ## Position
 
 | Field | Value |
 | --- | --- |
-| Latitude / X | ${item.position.x || "—"} |
-| Longitude / Y | ${item.position.y || "—"} |
-| Radius | ${item.position.r || "—"} |
+| Latitude / X | ${displayString(item.position.x)} |
+| Longitude / Y | ${displayString(item.position.y)} |
+| Radius | ${displayString(item.position.r)} |
 | Timestamp | ${formatDate(item.position.ts)} |
 
 ## Device
@@ -78,11 +82,11 @@ function DeviceDetails(props: DeviceDetailsProps) {
 | Field | Value |
 | --- | --- |
 | ID | ${item.device_id} |
-| IMEI | ${item.imei || "—"} |
-| Serial | ${item.sn || "—"} |
-| Phone | ${item.phone || "—"} |
-| Type | ${item.typename || item.type || "—"} |
-| Firmware | ${item.fw_version || "—"} |
+| IMEI | ${displayString(item.imei)} |
+| Serial | ${displayString(item.sn)} |
+| Phone | ${displayString(item.phone)} |
+| Type | ${item.typename.length > 0 ? item.typename : displayString(item.type)} |
+| Firmware | ${displayString(item.fw_version)} |
 `;
 
     return <Detail markdown={markdown} />;

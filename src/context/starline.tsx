@@ -17,7 +17,7 @@ export function StarLineProvider(props: StarLineProviderProps) {
         void new StarLine().initialize().then(setStarLine).catch(undefined);
     }, []);
 
-    if (!starline) {
+    if (starline === undefined) {
         return <DevicesLoadingFallback />;
     }
 

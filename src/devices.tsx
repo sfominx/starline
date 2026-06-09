@@ -23,7 +23,12 @@ function DeviceComponent() {
         useDevicesContext();
     const starline = useStarLine();
 
-    if (captchaImg && captchaSid) {
+    if (
+        captchaImg !== undefined &&
+        captchaImg.length > 0 &&
+        captchaSid !== undefined &&
+        captchaSid.length > 0
+    ) {
         return (
             <Form
                 actions={
@@ -52,7 +57,7 @@ function DeviceComponent() {
                                 }
                             }}
                         />
-                        {captchaImg && (
+                        {captchaImg.length > 0 && (
                             <Action.OpenInBrowser
                                 url={captchaImg}
                                 shortcut={{ modifiers: ["cmd"], key: "." }}

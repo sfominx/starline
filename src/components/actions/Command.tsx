@@ -41,7 +41,7 @@ function CommandAction(props: CommandActionProps) {
     }
 
     const handleAction = async () => {
-        if (confirmation) {
+        if (confirmation !== undefined) {
             const confirmed = await confirmAlert({
                 title: confirmation.title,
                 message: confirmation.message,

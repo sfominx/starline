@@ -25,7 +25,7 @@ function DisarmQuietlyAction() {
         const starline = new StarLine();
         const data = await starline.disarmQuietly(selectedItem.device_id.toString());
 
-        if (devicesContext) {
+        if (devicesContext !== null) {
             const devices = devicesContext.devices.map((device) => {
                 if (device.device_id === selectedItem.device_id) {
                     return { ...device, car_state: { ...device.car_state, arm: data.arm === "1" } };

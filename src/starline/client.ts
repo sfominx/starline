@@ -17,7 +17,7 @@ export type RequestOptions = {
 };
 
 function parseSlnetCookie(setCookie: string | null) {
-    if (!setCookie) {
+    if (setCookie === null || setCookie.length === 0) {
         return undefined;
     }
 
@@ -102,11 +102,15 @@ export class StarLineClient {
                 };
             };
 
-            if (data.state === 0 && data.desc.message) {
+            if (
+                data.state === 0 &&
+                data.desc.message !== undefined &&
+                data.desc.message.length > 0
+            ) {
                 throw new DisplayableError(data.desc.message);
             }
 
-            if (data.state === 1 && data.desc.code) {
+            if (data.state === 1 && data.desc.code !== undefined && data.desc.code.length > 0) {
                 await setItemWithLifetime(LOCAL_STORAGE.APP_CODE, data.desc.code);
                 return data.desc.code;
             }
@@ -143,7 +147,7 @@ export class StarLineClient {
                 throw new DisplayableError(data.desc.message);
             }
 
-            if (data.state === 1 && data.desc.token) {
+            if (data.state === 1 && data.desc.token !== undefined && data.desc.token.length > 0) {
                 await setItemWithLifetime(LOCAL_STORAGE.APP_TOKEN, data.desc.token);
                 return data.desc.token;
             }
@@ -174,7 +178,12 @@ export class StarLineClient {
             form.append("login", this.Login);
             form.append("pass", createHash("sha1").update(this.Password).digest("hex"));
 
-            if (captchaSid && captchaCode) {
+            if (
+                captchaSid !== undefined &&
+                captchaSid.length > 0 &&
+                captchaCode !== undefined &&
+                captchaCode.length > 0
+            ) {
                 form.append("captchaSid", captchaSid);
                 form.append("captchaCode", captchaCode);
             }
@@ -200,8 +209,10 @@ export class StarLineClient {
             if (data.state === 0) {
                 if (
                     data.desc.message === "Captcha needed." &&
-                    data.desc.captchaSid &&
-                    data.desc.captchaImg
+                    data.desc.captchaSid !== undefined &&
+                    data.desc.captchaSid.length > 0 &&
+                    data.desc.captchaImg !== undefined &&
+                    data.desc.captchaImg.length > 0
                 ) {
                     await LocalStorage.setItem(LOCAL_STORAGE.CAPTCHA_SID, data.desc.captchaSid);
                     await LocalStorage.setItem(LOCAL_STORAGE.CAPTCHA_IMG, data.desc.captchaImg);
@@ -215,7 +226,11 @@ export class StarLineClient {
                 }
             }
 
-            if (data.state === 1 && data.desc.user_token) {
+            if (
+                data.state === 1 &&
+                data.desc.user_token !== undefined &&
+                data.desc.user_token.length > 0
+            ) {
                 await setItemWithLifetime(LOCAL_STORAGE.SLID_USER_TOKEN, data.desc.user_token);
                 return data.desc.user_token;
             }
@@ -251,7 +266,7 @@ export class StarLineClient {
 
             const slnetUserTokenFromCookie = parseSlnetCookie(response.headers.get("set-cookie"));
 
-            if (!slnetUserTokenFromCookie) {
+            if (slnetUserTokenFromCookie === undefined || slnetUserTokenFromCookie.length === 0) {
                 throw new DisplayableError("Failed to parse SLNet token from auth response");
             }
 
@@ -287,7 +302,7 @@ export class StarLineClient {
         });
 
         const text = await response.text();
-        const data = text ? (JSON.parse(text) as T) : ({} as T);
+        const data = text.length > 0 ? (JSON.parse(text) as T) : ({} as T);
 
         if (response.status === 200) {
             return data;
