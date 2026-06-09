@@ -10,6 +10,14 @@ function deviceSetParamUrl(deviceId: string) {
     return `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/set_param`;
 }
 
+type StarLineCommandValue = string | number | boolean;
+
+type StarLineCommandBody = Record<string, unknown> & {
+    type: string;
+};
+
+type HttpMethod = "get" | "post" | "delete";
+
 export class StarLine {
     private AppId: string;
 
@@ -245,50 +253,105 @@ export class StarLine {
         return { error: "error" };
     }
 
-    private async apiCall(url: string, body: unknown) {
+    private async request<T = unknown>(
+        url: string,
+        method: HttpMethod = "get",
+        body?: unknown,
+    ): Promise<T> {
         /**
-         * Make POST API call
+         * Make WebAPI call with SLNet cookie auth.
          */
         const { slnetUserToken } = await this.auth();
 
         const response = await fetch(url, {
-            method: "post",
-            body: JSON.stringify(body),
-            headers: { cookie: `slnet=${slnetUserToken}` },
+            method,
+            body: body === undefined ? undefined : JSON.stringify(body),
+            headers: {
+                cookie: `slnet=${slnetUserToken}`,
+                "Content-Type": "application/json",
+            },
         });
+
+        const text = await response.text();
+        const data = text ? (JSON.parse(text) as T) : ({} as T);
+
         if (response.status === 200) {
-            return response.json();
+            return data;
         }
 
-        throw new DisplayableError("API call failed");
+        const errorData = data as { message?: string; codestring?: string };
+        throw new DisplayableError(errorData.message || errorData.codestring || "API call failed");
+    }
+
+    private async apiCall(url: string, body: unknown) {
+        /**
+         * Make POST API call
+         */
+        return this.request(url, "post", body);
+    }
+
+    private commandBody(type: string, value: StarLineCommandValue = 1): StarLineCommandBody {
+        return { type, [type]: value };
+    }
+
+    async sendCommand<T = unknown>(
+        deviceId: string,
+        type: string,
+        value: StarLineCommandValue = 1,
+    ) {
+        /**
+         * Execute device command via legacy blocking /set_param endpoint.
+         */
+        return this.apiCall(
+            deviceSetParamUrl(deviceId),
+            this.commandBody(type, value),
+        ) as Promise<T>;
+    }
+
+    async sendAsyncCommand<T = unknown>(
+        deviceId: string,
+        type: string,
+        value: StarLineCommandValue = 1,
+    ) {
+        /**
+         * Execute device command via non-blocking /async endpoint.
+         */
+        const url = `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/async`;
+        return this.request<T>(url, "post", { type, value });
+    }
+
+    async getAsyncCommandStatus<T = unknown>(deviceId: string, commandId: string) {
+        const url = `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/async/${commandId}`;
+        return this.request<T>(url);
     }
 
     async startEngine(deviceId: string) {
         /**
          * Start engine
          */
-        const body = { type: "ign_start", ign_start: 1 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
-
-        console.log(data);
+        return this.sendCommand(deviceId, "ign_start");
     }
 
     async stopEngine(deviceId: string) {
         /**
          * Stop engine
          */
-        const body = { type: "ign_stop", ign_stop: 1 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
+        return this.sendCommand(deviceId, "ign_stop");
+    }
 
-        console.log(data);
+    async engineOn(deviceId: string) {
+        return this.sendCommand(deviceId, "ign", 1);
+    }
+
+    async engineOff(deviceId: string) {
+        return this.sendCommand(deviceId, "ign", 0);
     }
 
     async arm(deviceId: string): Promise<CarStatus> {
         /**
          * Arm device
          */
-        const body = { type: "arm_start", arm_start: 1 };
-        const data = (await this.apiCall(deviceSetParamUrl(deviceId), body)) as CarStatus;
+        const data = await this.sendCommand<CarStatus>(deviceId, "arm_start");
 
         return data;
     }
@@ -297,8 +360,7 @@ export class StarLine {
         /**
          * Disarm device
          */
-        const body = { type: "arm_stop", arm_stop: 1 };
-        const data = (await this.apiCall(deviceSetParamUrl(deviceId), body)) as CarStatus;
+        const data = await this.sendCommand<CarStatus>(deviceId, "arm_stop");
 
         return data;
     }
@@ -307,141 +369,347 @@ export class StarLine {
         /**
          * Arm quiet device
          */
-        const body = { type: "arm_quiet", arm_quiet: 1 };
-        const data = (await this.apiCall(deviceSetParamUrl(deviceId), body)) as CarStatus;
-        console.log(data);
-
-        return data;
+        return this.sendCommand<CarStatus>(deviceId, "arm_quiet", 1);
     }
 
     async disarmQuietly(deviceId: string): Promise<CarStatus> {
         /**
          * Disarm quiet device
          */
-        const body = { type: "arm_quiet", arm_quiet: 0 };
-        const data = (await this.apiCall(deviceSetParamUrl(deviceId), body)) as CarStatus;
-        console.log(data);
-        return data;
+        return this.sendCommand<CarStatus>(deviceId, "arm_quiet", 0);
+    }
+
+    async armStartQuietly(deviceId: string): Promise<CarStatus> {
+        return this.sendCommand<CarStatus>(deviceId, "arm_start_quiet");
+    }
+
+    async armStopQuietly(deviceId: string): Promise<CarStatus> {
+        return this.sendCommand<CarStatus>(deviceId, "arm_stop_quiet");
     }
 
     async shockSensorBypass(deviceId: string) {
         /**
          * Shock sensor bypass
          */
-        const body = { type: "shock_bpass", shock_bpass: 1 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
-
-        console.log(data);
+        return this.sendCommand(deviceId, "shock_bpass");
     }
 
     async tiltSensorBypass(deviceId: string) {
         /**
          * Tilt sensor bypass
          */
-        const body = { type: "tilt_bpass", tilt_bpass: 1 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
-
-        console.log(data);
+        return this.sendCommand(deviceId, "tilt_bpass");
     }
 
     async additionalSensorBypass(deviceId: string) {
         /**
          * Additional sensor bypass
          */
-        const body = { type: "add_sens_bpass", add_sens_bpass: 1 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
-
-        console.log(data);
+        return this.sendCommand(deviceId, "add_sens_bpass");
     }
 
     async serviceModeEnable(deviceId: string) {
         /**
          * Service mode enable
          */
-        const body = { type: "valet", valet: 1 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
-
-        console.log(data);
+        return this.sendCommand(deviceId, "valet", 1);
     }
 
     async serviceModeDisable(deviceId: string) {
         /**
          * Service mode disable
          */
-        const body = { type: "valet", valet: 0 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
-
-        console.log(data);
+        return this.sendCommand(deviceId, "valet", 0);
     }
 
     async handsFreeModeEnable(deviceId: string) {
         /**
          * Hands free mode enable
          */
-        const body = { type: "hfree", hfree: 1 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
-
-        console.log(data);
+        return this.sendCommand(deviceId, "hfree", 1);
     }
 
     async handsFreeModeDisable(deviceId: string) {
         /**
          * Hands free mode disable
          */
-        const body = { type: "hfree", hfree: 0 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
-
-        console.log(data);
+        return this.sendCommand(deviceId, "hfree", 0);
     }
 
     async horn(deviceId: string) {
         /**
          * Horn
          */
-        const body = { type: "poke", poke: 1 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
-
-        console.log(data);
+        return this.sendCommand(deviceId, "poke");
     }
 
     async disarmTrunk(deviceId: string) {
         /**
          * Disarm trunk
          */
-        const body = { type: "disarm_trunk", disarm_trunk: 1 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
-
-        console.log(data);
+        return this.sendCommand(deviceId, "disarm_trunk");
     }
 
     async panic(deviceId: string) {
         /**
          * Panic
          */
-        const body = { type: "panic", panic: 1 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
+        return this.sendCommand(deviceId, "panic");
+    }
 
-        console.log(data);
+    async getBalance(deviceId: string, simNumber: 1 | 2 = 1) {
+        return this.sendCommand(deviceId, "getbalance", simNumber);
+    }
+
+    async updatePosition(deviceId: string) {
+        return this.sendCommand(deviceId, "update_position");
+    }
+
+    async outputOn(deviceId: string) {
+        return this.sendCommand(deviceId, "out", 1);
+    }
+
+    async outputOff(deviceId: string) {
+        return this.sendCommand(deviceId, "out", 0);
+    }
+
+    async dvrOn(deviceId: string) {
+        return this.sendCommand(deviceId, "dvr", 1);
+    }
+
+    async dvrOff(deviceId: string) {
+        return this.sendCommand(deviceId, "dvr", 0);
+    }
+
+    async webastoEnable(deviceId: string) {
+        return this.sendCommand(deviceId, "webasto", 1);
+    }
+
+    async webastoDisable(deviceId: string) {
+        return this.sendCommand(deviceId, "webasto", 0);
     }
 
     async webastoOn(deviceId: string) {
         /**
          * Turn on Webasto
          */
-        const body = { type: "webasto_on", webasto_on: 1 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
-
-        console.log(data);
+        return this.sendCommand(deviceId, "webasto_on");
     }
 
     async webastoOff(deviceId: string) {
         /**
          * Turn off Webasto
          */
-        const body = { type: "webasto_off", webasto_off: 1 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
+        return this.sendCommand(deviceId, "webasto_off");
+    }
 
-        console.log(data);
+    async flex(deviceId: string, number: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9) {
+        return this.sendCommand(deviceId, `flex_${number}`);
+    }
+
+    async getControlsLibrary<T = unknown>(deviceId: string) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/device/${deviceId}/ctrls_library`);
+    }
+
+    async getDeviceInfo<T = unknown>(deviceId: string) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/info`);
+    }
+
+    async updateDeviceInfo<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/info`,
+            "post",
+            body,
+        );
+    }
+
+    async getWays<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/ways`,
+            "post",
+            body,
+        );
+    }
+
+    async updateControls<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/controls`,
+            "post",
+            body,
+        );
+    }
+
+    async getObdParams<T = unknown>(deviceId: string) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/device/${deviceId}/obd_params`);
+    }
+
+    async getPosition<T = unknown>(deviceId: string) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/position`);
+    }
+
+    async getState<T = unknown>(deviceId: string) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v2/device/${deviceId}/state`);
+    }
+
+    async getEvents<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/events`,
+            "post",
+            body,
+        );
+    }
+
+    async getEventDescription<T = unknown>(eventId: string) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v3/library/events/${eventId}`);
+    }
+
+    async getEventsLibrary<T = unknown>() {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v3/library/events`);
+    }
+
+    async getObdErrors<T = unknown>(deviceId: string) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/device/${deviceId}/obd_errors`);
+    }
+
+    async getDeviceData<T = unknown>(deviceId: string) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v3/device/${deviceId}/data`);
+    }
+
+    async getDeviceReport<T = unknown>(deviceId: string) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v2/device/${deviceId}`);
+    }
+
+    async putComfortOptions<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/put_comfort_options`,
+            "post",
+            body,
+        );
+    }
+
+    async getSupportedComfortOptions<T = unknown>(deviceId: string) {
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/supported_comfort_options`,
+        );
+    }
+
+    async updateWebastoSettings<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/settings/webasto`,
+            "post",
+            body,
+        );
+    }
+
+    async updateRemoteStartSettings<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/settings/remote_start`,
+            "post",
+            body,
+        );
+    }
+
+    async updateShockSensorSettings<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/settings/shock_sens`,
+            "post",
+            body,
+        );
+    }
+
+    async updateMonitoringSettings<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/settings/monitoring`,
+            "post",
+            body,
+        );
+    }
+
+    async getSettings<T = unknown>(deviceId: string) {
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v4/device/${deviceId}/settings`);
+    }
+
+    async getMobileDevices<T = unknown>() {
+        const { userId } = await this.auth();
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/user/${userId}/mobile_devices`);
+    }
+
+    async getUserDevices<T = unknown>() {
+        const { userId } = await this.auth();
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/user/${userId}/devices`);
+    }
+
+    async getLbsPosition<T = unknown>() {
+        const { userId } = await this.auth();
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/user/${userId}/lbs_position`);
+    }
+
+    async postLbsPosition<T = unknown>(body: unknown) {
+        const { userId } = await this.auth();
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v1/user/${userId}/lbs_position`,
+            "post",
+            body,
+        );
+    }
+
+    async enableDataTransfer<T = unknown>(body: unknown) {
+        const { userId } = await this.auth();
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v1/user/${userId}/data_transfer`,
+            "post",
+            body,
+        );
+    }
+
+    async getDataTransfer<T = unknown>() {
+        const { userId } = await this.auth();
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/user/${userId}/data_transfer`);
+    }
+
+    async disableDataTransfer<T = unknown>() {
+        const { userId } = await this.auth();
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v1/user/${userId}/data_transfer`,
+            "delete",
+        );
+    }
+
+    async getDrivingScore<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/driving_score`,
+            "post",
+            body,
+        );
+    }
+
+    async getDrivingScoreHistory<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/driving_score_history`,
+            "post",
+            body,
+        );
+    }
+
+    async getObdData<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/getObdData`,
+            "post",
+            body,
+        );
+    }
+
+    async getDeviceList<T = unknown>() {
+        const { userId } = await this.auth();
+        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/user/${userId}/deviceList`);
+    }
+
+    async getDetails<T = unknown>(deviceId: string, body: unknown) {
+        return this.request<T>(
+            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/details`,
+            "post",
+            body,
+        );
     }
 }
 
