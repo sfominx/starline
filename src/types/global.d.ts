@@ -8,7 +8,7 @@ declare global {
      * @example
      * Object.keys(obj).map((key: string) => ...)
      */
-        keys<T extends object>(): Array<keyof T>;
+        keys<T extends object>(o: T): Array<keyof T>;
     }
 
     interface JSON {
@@ -18,7 +18,10 @@ declare global {
          * @param reviver A function that transforms the results. This function is called for each member of the object.
          * If a member contains nested objects, the nested objects are transformed before the parent object is.
          */
-        parse<T = unknown>(): T;
+        parse<T = unknown>(
+            text: string,
+            reviver?: (this: unknown, key: string, value: unknown) => unknown,
+        ): T;
     }
     type RecordOfAny = Record<string, any>;
     type RecordOfStrings = Record<string, string>;

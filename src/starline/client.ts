@@ -5,9 +5,8 @@ import fetch from "node-fetch";
 
 import { CaptchaNeededError, DisplayableError } from "../utils/errors";
 import { hasText } from "../utils/format";
-import { getItem, setItemWithLifetime } from "../utils/localStorage";
 
-import { LOCAL_STORAGE, STARLINE_ORIGINS } from "./constants";
+import { LOCAL_STORAGE, SECRETS_LIFETIME_HOURS, STARLINE_ORIGINS } from "./constants";
 import { idApiV3Url } from "./urls";
 
 type HttpMethod = "get" | "post" | "delete";
@@ -31,6 +30,8 @@ const CAPTCHA_NEEDED_MESSAGE = "Captcha needed.";
 const AUTH_CACHE_KEYS = Object.values(LOCAL_STORAGE).filter(
     (key) => key !== LOCAL_STORAGE.DEFAULT_DEVICE,
 );
+const HOUR_MS = 60 * 60 * 1000;
+const memorySecrets = new Map<StoredSecretKey, { value: string; expiresAt: number }>();
 
 const hash = (algorithm: "md5" | "sha1", value: string) =>
     createHash(algorithm).update(value).digest("hex");
@@ -50,7 +51,7 @@ async function readOptionalJson<T>(response: { text: () => Promise<string> }) {
     }
 
     try {
-        return JSON.parse(text) as T;
+        return JSON.parse<T>(text);
     } catch {
         return { message: text } as T;
     }
@@ -113,6 +114,7 @@ export class StarLineClient {
     }
 
     static async clearAuthCache() {
+        memorySecrets.clear();
         await Promise.all(AUTH_CACHE_KEYS.map((key) => LocalStorage.removeItem(key)));
     }
 
@@ -121,13 +123,16 @@ export class StarLineClient {
     }
 
     private async cachedSecret(key: StoredSecretKey, load: () => Promise<string>) {
-        const cached = await getItem(key);
-        if (cached !== undefined) {
-            return cached;
+        const cached = memorySecrets.get(key);
+        if (cached !== undefined && cached.expiresAt >= Date.now()) {
+            return cached.value;
         }
 
         const value = await load();
-        await setItemWithLifetime(key, value);
+        memorySecrets.set(key, {
+            value,
+            expiresAt: Date.now() + SECRETS_LIFETIME_HOURS[key] * HOUR_MS,
+        });
         return value;
     }
 
@@ -158,7 +163,11 @@ export class StarLineClient {
     }
 
     async loginWithCaptcha(captchaSid: string, captchaCode: string) {
-        await LocalStorage.removeItem(LOCAL_STORAGE.SLID_USER_TOKEN);
+        memorySecrets.delete(LOCAL_STORAGE.SLID_USER_TOKEN);
+        await Promise.all([
+            LocalStorage.removeItem(LOCAL_STORAGE.SLID_USER_TOKEN),
+            LocalStorage.removeItem(LOCAL_STORAGE.SLID_USER_TOKEN_EOL),
+        ]);
         return this.login(captchaSid, captchaCode);
     }
 
@@ -206,13 +215,15 @@ export class StarLineClient {
     }
 
     protected async auth(): Promise<AuthTokens> {
-        const [cachedUserId, cachedToken] = await Promise.all([
-            LocalStorage.getItem(LOCAL_STORAGE.USER_ID),
-            getItem(LOCAL_STORAGE.SLNET_TOKEN),
-        ]);
+        const cachedToken = memorySecrets.get(LOCAL_STORAGE.SLNET_TOKEN);
+        const cachedUserId = await LocalStorage.getItem(LOCAL_STORAGE.USER_ID);
 
-        if (cachedUserId !== undefined && cachedToken !== undefined) {
-            return { userId: cachedUserId.toString(), slnetUserToken: cachedToken };
+        if (
+            cachedUserId !== undefined &&
+            cachedToken !== undefined &&
+            cachedToken.expiresAt >= Date.now()
+        ) {
+            return { userId: cachedUserId.toString(), slnetUserToken: cachedToken.value };
         }
 
         const response = await fetch(`${STARLINE_ORIGINS.developer}json/v2/auth.slid`, {
@@ -227,15 +238,17 @@ export class StarLineClient {
             throw new DisplayableError("Failed to parse SLNet token from auth response");
         }
 
-        await Promise.all([
-            LocalStorage.setItem(LOCAL_STORAGE.USER_ID, data.user_id),
-            setItemWithLifetime(LOCAL_STORAGE.SLNET_TOKEN, slnetUserToken),
-        ]);
+        memorySecrets.set(LOCAL_STORAGE.SLNET_TOKEN, {
+            value: slnetUserToken,
+            expiresAt: Date.now() + SECRETS_LIFETIME_HOURS[LOCAL_STORAGE.SLNET_TOKEN] * HOUR_MS,
+        });
+        await LocalStorage.setItem(LOCAL_STORAGE.USER_ID, data.user_id);
 
         return { userId: data.user_id, slnetUserToken };
     }
 
     protected async clearWebApiAuthCache() {
+        memorySecrets.delete(LOCAL_STORAGE.SLNET_TOKEN);
         await Promise.all([
             LocalStorage.removeItem(LOCAL_STORAGE.SLNET_TOKEN),
             LocalStorage.removeItem(LOCAL_STORAGE.SLNET_TOKEN_EOL),

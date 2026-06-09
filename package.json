@@ -133,6 +133,7 @@
         "dev": "ray develop",
         "fix-lint": "ray lint --fix",
         "lint": "ray lint",
+        "prune": "ts-prune --ignore \"src/(arm|disarm|start_engine|stop_engine|arm_quietly|disarm_quietly|horn|update_position|devices)\\.tsx|satisfies|Record|CommandValue|src/utils/defaultDeviceCommand\\.ts\"",
         "test": "jest",
         "publish": "npx @raycast/api@latest publish"
     }

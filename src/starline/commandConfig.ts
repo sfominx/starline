@@ -152,4 +152,4 @@ export const DEVICE_ACTIONS = {
 
 export type DeviceActionKey = keyof typeof DEVICE_ACTIONS;
 
-export const PRIMARY_DEVICE_ACTIONS = Object.keys(DEVICE_ACTIONS) as DeviceActionKey[];
+export const PRIMARY_DEVICE_ACTIONS = Object.keys(DEVICE_ACTIONS);

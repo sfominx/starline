@@ -53,7 +53,7 @@ function defaultJson(value: unknown) {
 
 function parseJsonBody(value: string): { ok: true; body: unknown } | { ok: false } {
     try {
-        return { ok: true, body: JSON.parse(value) as unknown };
+        return { ok: true, body: JSON.parse(value) };
     } catch {
         return { ok: false };
     }
