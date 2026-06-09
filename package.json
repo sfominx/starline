@@ -5,6 +5,9 @@
     "description": "Manage your Starline devices. Requires developer account.",
     "icon": "command-icon.png",
     "author": "sergey_fomin",
+    "categories": [
+        "Security"
+    ],
     "license": "MIT",
     "commands": [
         {

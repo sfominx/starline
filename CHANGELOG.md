@@ -1,6 +1,6 @@
 # Starline Changelog
 
-## [Unreleased]
+## [Productization] - {PR_MERGE_DATE}
 
 - Added full product API coverage for StarLine user/device library endpoints: user devices, device list, mobile devices, event library, LBS position, and data transfer settings.
 - Added typed wrappers for advanced StarLine commands including Hands Free, trunk disarm, panic, balance, output, DVR, Webasto, Hijack with PIN, and Flex commands.
