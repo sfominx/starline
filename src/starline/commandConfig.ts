@@ -17,6 +17,7 @@ export type DeviceCommandConfig = {
     icon?: Image.ImageLike;
     shortcut?: Keyboard.Shortcut;
     successMessage: string;
+    supportCommand?: string;
     confirmation?: CommandConfirmation;
     updatesArmState?: boolean;
     run: (starline: StarLine, deviceId: string, item?: Item) => Promise<unknown>;
@@ -43,6 +44,7 @@ const deviceCommand = (
 export const DEVICE_ACTIONS = {
     arm: deviceCommand("Arm", "Armed", (starline, deviceId) => starline.arm(deviceId), {
         icon: Icon.Lock,
+        supportCommand: "arm_start",
         updatesArmState: true,
     }),
     startEngine: deviceCommand(
@@ -51,6 +53,7 @@ export const DEVICE_ACTIONS = {
         (starline, deviceId) => starline.startEngine(deviceId),
         {
             icon: Icon.Play,
+            supportCommand: "ign_start",
             shortcut: { modifiers: ["cmd"], key: "return" },
             confirmation: {
                 title: "Start engine?",
@@ -61,6 +64,7 @@ export const DEVICE_ACTIONS = {
     ),
     disarm: deviceCommand("Disarm", "Disarmed", (starline, deviceId) => starline.disarm(deviceId), {
         icon: Icon.LockUnlocked,
+        supportCommand: "arm_stop",
         shortcut: { modifiers: ["cmd"], key: "d" },
         confirmation: destructiveConfirmation(
             "Disarm vehicle?",
@@ -75,6 +79,7 @@ export const DEVICE_ACTIONS = {
         (starline, deviceId) => starline.stopEngine(deviceId),
         {
             icon: Icon.Stop,
+            supportCommand: "ign_stop",
             shortcut: { modifiers: ["cmd"], key: "s" },
             confirmation: destructiveConfirmation(
                 "Stop engine?",
@@ -89,6 +94,7 @@ export const DEVICE_ACTIONS = {
         (starline, deviceId) => starline.armQuietly(deviceId),
         {
             icon: Icon.Lock,
+            supportCommand: "arm_start_quiet",
             updatesArmState: true,
         },
     ),
@@ -98,6 +104,7 @@ export const DEVICE_ACTIONS = {
         (starline, deviceId) => starline.disarmQuietly(deviceId),
         {
             icon: Icon.LockUnlocked,
+            supportCommand: "arm_stop_quiet",
             confirmation: destructiveConfirmation(
                 "Disarm quietly?",
                 "This will disable security mode without sound confirmation.",
@@ -110,29 +117,31 @@ export const DEVICE_ACTIONS = {
         "Shock Sensor Bypass",
         "Shock sensor bypassed",
         (starline, deviceId) => starline.shockSensorBypass(deviceId),
-        { icon: Icon.BoltDisabled },
+        { icon: Icon.BoltDisabled, supportCommand: "shock_bpass" },
     ),
     tiltSensorBypass: deviceCommand(
         "Tilt Sensor Bypass",
         "Tilt sensor bypassed",
         (starline, deviceId) => starline.tiltSensorBypass(deviceId),
-        { icon: Icon.ClearFormatting },
+        { icon: Icon.ClearFormatting, supportCommand: "tilt_bpass" },
     ),
     additionalSensorBypass: deviceCommand(
         "Additional Sensor Bypass",
         "Additional sensor bypassed",
         (starline, deviceId) => starline.additionalSensorBypass(deviceId),
-        { icon: Icon.LivestreamDisabled },
+        { icon: Icon.LivestreamDisabled, supportCommand: "add_sens_bpass" },
     ),
     serviceModeEnable: deviceCommand(
         "Enable Service Mode",
         "Service mode enabled",
         (starline, deviceId) => starline.serviceModeEnable(deviceId),
+        { supportCommand: "valet" },
     ),
     serviceModeDisable: deviceCommand(
         "Disable Service Mode",
         "Service mode disabled",
         (starline, deviceId) => starline.serviceModeDisable(deviceId),
+        { supportCommand: "valet" },
     ),
     horn: deviceCommand(
         "Horn",
@@ -140,13 +149,14 @@ export const DEVICE_ACTIONS = {
         (starline, deviceId) => starline.horn(deviceId),
         {
             icon: Icon.SpeakerUp,
+            supportCommand: "poke",
         },
     ),
     updatePosition: deviceCommand(
         "Update Position",
         "Position update requested",
         (starline, deviceId) => starline.updatePosition(deviceId),
-        { icon: Icon.Map },
+        { icon: Icon.Map, supportCommand: "update_position" },
     ),
 } satisfies Record<string, DeviceCommandConfig>;
 

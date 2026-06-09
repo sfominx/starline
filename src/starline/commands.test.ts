@@ -13,7 +13,13 @@ class TestStarLineCommands extends StarLineCommands {
 
     protected request<T>(url: string, options?: { body?: unknown }): Promise<T> {
         this.requests.push({ url, options });
-        return Promise.resolve(this.responses.shift() as T);
+        const response = this.responses.shift();
+
+        if (response instanceof Error) {
+            return Promise.reject(response);
+        }
+
+        return Promise.resolve(response as T);
     }
 }
 
@@ -32,6 +38,24 @@ describe("StarLineCommands", () => {
         );
 
         expect(client.requests).toHaveLength(1);
+    });
+
+    it("does not fallback to legacy command after async command has been accepted", async () => {
+        const client = new TestStarLineCommands([
+            { ...asyncResponse(1), cmd_id: "command-1" },
+            new Error("status network failed"),
+            {},
+        ]);
+
+        await expect(client.sendCommandWithAsyncFallback("42", "poke", 1)).rejects.toThrow(
+            "status network failed",
+        );
+
+        expect(client.requests).toHaveLength(2);
+        expect(client.requests.map(({ url }) => url)).toEqual([
+            expect.stringContaining("/v2/device/42/async"),
+            expect.stringContaining("/v2/device/42/async/command-1"),
+        ]);
     });
 
     it("uses explicit quiet arm command types", async () => {

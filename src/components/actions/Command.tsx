@@ -1,11 +1,11 @@
 import { Icon } from "@raycast/api";
 
+import { isCommandSupported } from "../../starline/commandSupport";
 import { useSelectedDeviceItem } from "../context/deviceItem";
 
 import DeviceCommandAction from "./DeviceCommand";
 
 import type { DeviceCommandConfig, DeviceCommandValue } from "../../starline/commandConfig";
-import type { Item } from "../../types/devices";
 
 type CommandActionProps = {
     title: string;
@@ -16,17 +16,6 @@ type CommandActionProps = {
     confirmation?: DeviceCommandConfig["confirmation"];
     requireSupported?: boolean;
 };
-
-function isCommandSupported(command: string, item: Item) {
-    const functions = item.functions ?? [];
-    const controls = item.controls ?? [];
-
-    if (functions.length === 0 && controls.length === 0) {
-        return true;
-    }
-
-    return functions.includes(command) || controls.some(({ type }) => type === command);
-}
 
 function CommandAction(props: CommandActionProps) {
     const {

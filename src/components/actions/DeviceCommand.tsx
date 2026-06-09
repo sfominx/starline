@@ -5,6 +5,7 @@ import { useOptionalDevicesContext } from "../../context/devices";
 import { useOptionalStarLine } from "../../context/starline";
 import { StarLine } from "../../starline/api";
 import { DEVICE_ACTIONS } from "../../starline/commandConfig";
+import { isCommandSupported } from "../../starline/commandSupport";
 import { confirmDeviceCommand } from "../../utils/confirmCommand";
 import { runDeviceCommand } from "../../utils/runDeviceCommand";
 import { useSelectedDeviceItem } from "../context/deviceItem";
@@ -21,12 +22,25 @@ const updateArmState = (target: Item, result: unknown) => {
 };
 
 function DeviceCommandAction(config: DeviceCommandConfig) {
-    const { title, icon, shortcut, confirmation, run, successMessage, updatesArmState } = config;
+    const {
+        title,
+        icon,
+        shortcut,
+        confirmation,
+        run,
+        successMessage,
+        supportCommand,
+        updatesArmState,
+    } = config;
     const item = useSelectedDeviceItem();
     const devicesContext = useOptionalDevicesContext();
     const contextStarLine = useOptionalStarLine();
     const fallbackStarLine = useMemo(() => new StarLine(), []);
     const starline = contextStarLine ?? fallbackStarLine;
+
+    if (!isCommandSupported(supportCommand, item)) {
+        return null;
+    }
 
     const handleAction = async () => {
         if (!(await confirmDeviceCommand(confirmation, title))) {

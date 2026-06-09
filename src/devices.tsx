@@ -39,9 +39,8 @@ function CaptchaForm({ captchaImg, captchaSid }: { captchaImg: string; captchaSi
         >
             <Form.Description
                 title="Captcha needed"
-                text="Please view captcha from first url and enter the captcha to continue"
+                text={`Open this captcha URL and enter the captcha to continue:\n${captchaImg}`}
             />
-            <Form.TextField id="captchaImg" title="URL" defaultValue={captchaImg} />
             <Form.TextField
                 id="captchaValue"
                 title="Captcha"

@@ -128,15 +128,25 @@ export class StarLineCommands extends StarLineClient {
         value: CommandValue,
         options?: AsyncCommandOptions,
     ) {
-        try {
-            return (await this.sendAsyncCommandAndWait(deviceId, type, value, options)) as T;
-        } catch (error) {
-            if (error instanceof AsyncCommandError) {
-                throw error;
-            }
+        let response: AsyncCommandResponse;
 
+        try {
+            response = await this.sendAsyncCommand(deviceId, type, value);
+        } catch {
             return this.sendCommand<T>(deviceId, type, value);
         }
+
+        if (isDone(response)) {
+            return response as T;
+        }
+        if (isFailed(response)) {
+            throw new AsyncCommandError(asyncError(response));
+        }
+        if (response.cmd_id === undefined || response.cmd_id.length === 0) {
+            throw new AsyncCommandError("Async command response does not contain command id");
+        }
+
+        return (await this.waitForAsyncCommand(deviceId, response.cmd_id, options)) as T;
     }
 
     startEngine(deviceId: string) {

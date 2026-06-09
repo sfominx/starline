@@ -1,7 +1,7 @@
 import { Toast, showToast } from "@raycast/api";
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer } from "react";
 
-import { CaptchaNeededError, getDisplayableErrorMessage } from "../utils/errors";
+import { CaptchaNeededError, getErrorMessage } from "../utils/errors";
 
 import { useStarLine } from "./starline";
 
@@ -55,11 +55,7 @@ export function DevicesProvider({ children }: { children: ReactNode }) {
                 return;
             }
 
-            await showToast(
-                Toast.Style.Failure,
-                "Failed to load devices",
-                getDisplayableErrorMessage(error),
-            );
+            await showToast(Toast.Style.Failure, "Failed to load devices", getErrorMessage(error));
         } finally {
             setState({ isLoading: false });
         }

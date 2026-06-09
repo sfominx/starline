@@ -107,6 +107,30 @@ describe("DevicesItemActionPanel", () => {
         }).not.toThrow();
     });
 
+    it("hides unsupported primary commands", () => {
+        let renderer: ReactTestRenderer | undefined;
+
+        act(() => {
+            renderer = create(
+                <DevicesItemContext.Provider value={item}>
+                    <DevicesItemActionPanel />
+                </DevicesItemContext.Provider>,
+            );
+        });
+
+        if (renderer === undefined) {
+            throw new Error("Renderer was not created");
+        }
+
+        const actionTitles = renderer.root
+            .findAll((node) => node.type === "Action")
+            .map((node) => String(node.props.title));
+
+        expect(actionTitles).toContain("Enable Hands Free");
+        expect(actionTitles).not.toContain("Arm");
+        expect(actionTitles).not.toContain("Start Engine");
+    });
+
     it("hides advanced JSON mutation forms outside development", () => {
         let renderer: ReactTestRenderer | undefined;
 

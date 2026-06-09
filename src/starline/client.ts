@@ -14,6 +14,7 @@ type RequestOptions = { method?: HttpMethod; body?: unknown; retryOnAuthError?: 
 type ApiV3Response<TDesc extends Record<string, unknown>> = { state: number; desc: TDesc };
 type AuthTokens = { userId: string; slnetUserToken: string };
 type StoredSecretKey = (typeof AUTH_SECRET)[keyof typeof AUTH_SECRET];
+type MemorySecretKey = `${string}:${StoredSecretKey}`;
 type LoginResponse = ApiV3Response<{
     message?: string;
     captchaSid?: string;
@@ -29,7 +30,7 @@ const AUTH_CACHE_KEYS = [
     LOCAL_STORAGE.USER_ID,
 ];
 const HOUR_MS = 60 * 60 * 1000;
-const memorySecrets = new Map<StoredSecretKey, { value: string; expiresAt: number }>();
+const memorySecrets = new Map<MemorySecretKey, { value: string; expiresAt: number }>();
 
 const hash = (algorithm: "md5" | "sha1", value: string) =>
     createHash(algorithm).update(value).digest("hex");
@@ -37,6 +38,16 @@ const md5 = (value: string) => hash("md5", value);
 const sha1 = (value: string) => hash("sha1", value);
 const parseSlnetCookie = (setCookie: string | null) =>
     /(?:^|[,;\s])slnet=([^;,\s]+)/.exec(setCookie ?? "")?.[1];
+const encodeSlnetAuth = ({ userId, slnetUserToken }: AuthTokens) =>
+    JSON.stringify({ userId, slnetUserToken });
+const decodeSlnetAuth = (value: string): AuthTokens | undefined => {
+    try {
+        const { userId, slnetUserToken } = JSON.parse<Partial<AuthTokens>>(value);
+        return hasText(userId) && hasText(slnetUserToken) ? { userId, slnetUserToken } : undefined;
+    } catch {
+        return undefined;
+    }
+};
 
 async function readJson<T>(response: { json: () => Promise<unknown> }) {
     return (await response.json()) as T;
@@ -103,12 +114,15 @@ export class StarLineClient {
 
     private readonly password: string;
 
+    private readonly cacheNamespace: string;
+
     constructor() {
         const { AppId, Secret, Login, Password } = getPreferenceValues<Preferences>();
         this.appId = AppId;
         this.secret = Secret;
         this.username = Login;
         this.password = Password;
+        this.cacheNamespace = sha1(JSON.stringify([AppId, Secret, Login, Password]));
     }
 
     static async clearAuthCache() {
@@ -120,14 +134,19 @@ export class StarLineClient {
         return StarLineClient.clearAuthCache();
     }
 
+    private memorySecretKey(key: StoredSecretKey): MemorySecretKey {
+        return `${this.cacheNamespace}:${key}`;
+    }
+
     private async cachedSecret(key: StoredSecretKey, load: () => Promise<string>) {
-        const cached = memorySecrets.get(key);
+        const memoryKey = this.memorySecretKey(key);
+        const cached = memorySecrets.get(memoryKey);
         if (cached !== undefined && cached.expiresAt >= Date.now()) {
             return cached.value;
         }
 
         const value = await load();
-        memorySecrets.set(key, {
+        memorySecrets.set(memoryKey, {
             value,
             expiresAt: Date.now() + SECRETS_LIFETIME_HOURS[key] * HOUR_MS,
         });
@@ -161,7 +180,7 @@ export class StarLineClient {
     }
 
     loginWithCaptcha(captchaSid: string, captchaCode: string) {
-        memorySecrets.delete(AUTH_SECRET.SLID_USER_TOKEN);
+        memorySecrets.delete(this.memorySecretKey(AUTH_SECRET.SLID_USER_TOKEN));
         return this.login(captchaSid, captchaCode);
     }
 
@@ -209,15 +228,14 @@ export class StarLineClient {
     }
 
     protected async auth(): Promise<AuthTokens> {
-        const cachedToken = memorySecrets.get(AUTH_SECRET.SLNET_TOKEN);
-        const cachedUserId = await LocalStorage.getItem(LOCAL_STORAGE.USER_ID);
+        const slnetMemoryKey = this.memorySecretKey(AUTH_SECRET.SLNET_TOKEN);
+        const cachedToken = memorySecrets.get(slnetMemoryKey);
 
-        if (
-            cachedUserId !== undefined &&
-            cachedToken !== undefined &&
-            cachedToken.expiresAt >= Date.now()
-        ) {
-            return { userId: cachedUserId.toString(), slnetUserToken: cachedToken.value };
+        if (cachedToken !== undefined && cachedToken.expiresAt >= Date.now()) {
+            const cachedAuth = decodeSlnetAuth(cachedToken.value);
+            if (cachedAuth !== undefined) {
+                return cachedAuth;
+            }
         }
 
         const response = await fetch(`${STARLINE_ORIGINS.developer}json/v2/auth.slid`, {
@@ -232,17 +250,18 @@ export class StarLineClient {
             throw new DisplayableError("Failed to parse SLNet token from auth response");
         }
 
-        memorySecrets.set(AUTH_SECRET.SLNET_TOKEN, {
-            value: slnetUserToken,
+        const authTokens = { userId: data.user_id, slnetUserToken };
+        memorySecrets.set(slnetMemoryKey, {
+            value: encodeSlnetAuth(authTokens),
             expiresAt: Date.now() + SECRETS_LIFETIME_HOURS[AUTH_SECRET.SLNET_TOKEN] * HOUR_MS,
         });
         await LocalStorage.setItem(LOCAL_STORAGE.USER_ID, data.user_id);
 
-        return { userId: data.user_id, slnetUserToken };
+        return authTokens;
     }
 
     protected async clearWebApiAuthCache() {
-        memorySecrets.delete(AUTH_SECRET.SLNET_TOKEN);
+        memorySecrets.delete(this.memorySecretKey(AUTH_SECRET.SLNET_TOKEN));
         await LocalStorage.removeItem(LOCAL_STORAGE.USER_ID);
     }
 
