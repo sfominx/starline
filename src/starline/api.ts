@@ -1,10 +1,7 @@
-import { LocalStorage, getPreferenceValues } from "@raycast/api";
-import fetch from "node-fetch";
-import { createHash } from "crypto";
-import { DEVELOPER_STARLINE, ID_STARLINE, LOCAL_STORAGE } from "./constants";
-import { CaptchaNeededError, DisplayableError } from "../utils/errors";
+import { LocalStorage } from "@raycast/api";
+import { DEVELOPER_STARLINE, LOCAL_STORAGE } from "./constants";
+import { StarLineClient } from "./client";
 import { CarStatus, Devices } from "../types/devices";
-import { getItem, setItemWithLifetime } from "../utils/localStorage";
 
 function deviceSetParamUrl(deviceId: string) {
     return `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/set_param`;
@@ -16,262 +13,7 @@ type StarLineCommandBody = Record<string, unknown> & {
     type: string;
 };
 
-type HttpMethod = "get" | "post" | "delete";
-
-type RequestOptions = {
-    retryOnAuthError?: boolean;
-};
-
-function parseSlnetCookie(setCookie: string | null) {
-    if (!setCookie) return undefined;
-
-    const match = setCookie.match(/(?:^|[,;\s])slnet=([^;,\s]+)/);
-    return match?.[1];
-}
-
-function isAuthError(responseStatus: number, data: unknown) {
-    if (responseStatus === 401 || responseStatus === 403) return true;
-
-    const errorData = data as { code?: number; message?: string; codestring?: string };
-    const message = `${errorData.message || ""} ${errorData.codestring || ""}`.toLowerCase();
-
-    return errorData.code === 401 || message.includes("auth") || message.includes("token");
-}
-
-export class StarLine {
-    private AppId: string;
-
-    private Secret: string;
-
-    private Login: string;
-
-    private Password: string;
-
-    constructor() {
-        const { AppId, Secret, Login, Password } = getPreferenceValues<Preferences>();
-        this.AppId = AppId;
-        this.Secret = Secret;
-        this.Login = Login;
-        this.Password = Password;
-    }
-
-    async initialize(): Promise<this> {
-        /**
-         * Initialize the API client
-         */
-        return this;
-    }
-
-    static async clearAuthCache() {
-        await Promise.all(
-            [
-                LOCAL_STORAGE.CAPTCHA_SID,
-                LOCAL_STORAGE.CAPTCHA_IMG,
-                LOCAL_STORAGE.APP_CODE,
-                LOCAL_STORAGE.APP_CODE_EOL,
-                LOCAL_STORAGE.APP_TOKEN,
-                LOCAL_STORAGE.APP_TOKEN_EOL,
-                LOCAL_STORAGE.SLID_USER_TOKEN,
-                LOCAL_STORAGE.SLID_USER_TOKEN_EOL,
-                LOCAL_STORAGE.SLNET_TOKEN,
-                LOCAL_STORAGE.SLNET_TOKEN_EOL,
-                LOCAL_STORAGE.USER_ID,
-            ].map((key) => LocalStorage.removeItem(key)),
-        );
-    }
-
-    async clearAuthCache() {
-        return StarLine.clearAuthCache();
-    }
-
-    private async clearWebApiAuthCache() {
-        await Promise.all([
-            LocalStorage.removeItem(LOCAL_STORAGE.SLNET_TOKEN),
-            LocalStorage.removeItem(LOCAL_STORAGE.SLNET_TOKEN_EOL),
-            LocalStorage.removeItem(LOCAL_STORAGE.USER_ID),
-        ]);
-    }
-
-    private async getAppCode() {
-        /**
-         * Get application code from StarLine API
-         */
-        const appCode = await getItem(LOCAL_STORAGE.APP_CODE);
-
-        if (appCode === undefined) {
-            const secretHash = createHash("md5").update(this.Secret).digest("hex");
-            const args = `appId=${this.AppId}&secret=${secretHash}`;
-            const url = `${ID_STARLINE}apiV3/application/getCode?${args}`;
-
-            const response = await fetch(url);
-            const data = (await response.json()) as {
-                state: number;
-                desc: {
-                    code?: string;
-                    message?: string;
-                };
-            };
-
-            if (data.state === 0 && data.desc.message) {
-                throw new DisplayableError(data.desc.message);
-            }
-
-            if (data.state === 1 && data.desc.code) {
-                await setItemWithLifetime(LOCAL_STORAGE.APP_CODE, data.desc.code);
-                return data.desc.code;
-            }
-
-            throw new DisplayableError(`Unknown error: ${data.state}`);
-        } else {
-            return appCode;
-        }
-    }
-
-    private async getAppToken() {
-        /**
-         * Get application token from StarLine API
-         */
-        const appCode = await this.getAppCode();
-        const appToken = await getItem(LOCAL_STORAGE.APP_TOKEN);
-        if (appToken === undefined) {
-            const secretHash = createHash("md5")
-                .update(this.Secret + appCode)
-                .digest("hex");
-            const args = `appId=${this.AppId}&secret=${secretHash}`;
-            const url = `${ID_STARLINE}apiV3/application/getToken?${args}`;
-
-            const response = await fetch(url);
-            const data = (await response.json()) as {
-                state: number;
-                desc: {
-                    token?: string;
-                    message?: string;
-                };
-            };
-
-            if (data.state === 0) {
-                throw new DisplayableError(data.desc.message);
-            }
-
-            if (data.state === 1 && data.desc.token) {
-                await setItemWithLifetime(LOCAL_STORAGE.APP_TOKEN, data.desc.token);
-                return data.desc.token;
-            }
-
-            throw new DisplayableError(`Unknown error: ${data.state}`);
-        } else {
-            return appToken;
-        }
-    }
-
-    async loginWithCaptcha(captchaSid: string, captchaCode: string) {
-        await LocalStorage.removeItem(LOCAL_STORAGE.SLID_USER_TOKEN);
-        return this.login(captchaSid, captchaCode);
-    }
-
-    private async login(captchaSid?: string, captchaCode?: string) {
-        /**
-         * Login user
-         */
-        const appToken = await this.getAppToken();
-
-        const SlidUserToken = await getItem(LOCAL_STORAGE.SLID_USER_TOKEN);
-
-        if (SlidUserToken === undefined) {
-            const url = `${ID_STARLINE}apiV3/user/login`;
-
-            const form = new URLSearchParams();
-            form.append("login", this.Login);
-            form.append("pass", createHash("sha1").update(this.Password).digest("hex"));
-
-            if (captchaSid && captchaCode) {
-                form.append("captchaSid", captchaSid);
-                form.append("captchaCode", captchaCode);
-            }
-
-            const response = await fetch(url, {
-                method: "POST",
-                body: form,
-                headers: { token: appToken.toString() },
-            });
-            const data = (await response.json()) as {
-                state: number;
-                desc: {
-                    token?: string;
-                    message?: string;
-                    phone?: string;
-                    contactId?: string;
-                    captchaSid?: string;
-                    captchaImg?: string;
-                    user_token?: string;
-                };
-            };
-
-            if (data.state === 0) {
-                if (
-                    data.desc.message === "Captcha needed." &&
-                    data.desc.captchaSid &&
-                    data.desc.captchaImg
-                ) {
-                    await LocalStorage.setItem(LOCAL_STORAGE.CAPTCHA_SID, data.desc.captchaSid);
-                    await LocalStorage.setItem(LOCAL_STORAGE.CAPTCHA_IMG, data.desc.captchaImg);
-                    throw new CaptchaNeededError(
-                        data.desc.message,
-                        data.desc.captchaSid,
-                        data.desc.captchaImg,
-                    );
-                } else {
-                    throw new DisplayableError(data.desc.message);
-                }
-            }
-
-            if (data.state === 1 && data.desc.user_token) {
-                await setItemWithLifetime(LOCAL_STORAGE.SLID_USER_TOKEN, data.desc.user_token);
-                return data.desc.user_token;
-            }
-
-            throw new DisplayableError(`Unknown error: ${data.state}`);
-        } else {
-            return SlidUserToken;
-        }
-    }
-
-    private async auth() {
-        /**
-         * Authenticate user
-         */
-        const SlidUserToken = await this.login();
-
-        const userId = await LocalStorage.getItem(LOCAL_STORAGE.USER_ID);
-        const slnetUserToken = await getItem(LOCAL_STORAGE.SLNET_TOKEN);
-
-        if (userId === undefined || slnetUserToken === undefined) {
-            const url = `${DEVELOPER_STARLINE}json/v2/auth.slid`;
-            const body = {
-                slid_token: SlidUserToken,
-            };
-            const response = await fetch(url, {
-                method: "post",
-                body: JSON.stringify(body),
-                headers: { "Content-Type": "application/json" },
-            });
-
-            const data = (await response.json()) as { user_id: string };
-            await LocalStorage.setItem(LOCAL_STORAGE.USER_ID, data.user_id);
-
-            const slnetUserTokenFromCookie = parseSlnetCookie(response.headers.get("set-cookie"));
-
-            if (!slnetUserTokenFromCookie) {
-                throw new DisplayableError("Failed to parse SLNet token from auth response");
-            }
-
-            await setItemWithLifetime(LOCAL_STORAGE.SLNET_TOKEN, slnetUserTokenFromCookie);
-
-            return { userId: data.user_id, slnetUserToken: slnetUserTokenFromCookie };
-        }
-        return { userId, slnetUserToken };
-    }
-
+export class StarLine extends StarLineClient {
     async getDevices(): Promise<{ result?: Devices; error?: string }> {
         /**
          * Get user devices
@@ -295,49 +37,6 @@ export class StarLine {
         return { error: "error" };
     }
 
-    private async request<T = unknown>(
-        url: string,
-        method: HttpMethod = "get",
-        body?: unknown,
-        options: RequestOptions = { retryOnAuthError: true },
-    ): Promise<T> {
-        /**
-         * Make WebAPI call with SLNet cookie auth.
-         */
-        const { slnetUserToken } = await this.auth();
-
-        const response = await fetch(url, {
-            method,
-            body: body === undefined ? undefined : JSON.stringify(body),
-            headers: {
-                cookie: `slnet=${slnetUserToken}`,
-                "Content-Type": "application/json",
-            },
-        });
-
-        const text = await response.text();
-        const data = text ? (JSON.parse(text) as T) : ({} as T);
-
-        if (response.status === 200) {
-            return data;
-        }
-
-        if (options.retryOnAuthError && isAuthError(response.status, data)) {
-            await this.clearWebApiAuthCache();
-            return this.request<T>(url, method, body, { retryOnAuthError: false });
-        }
-
-        const errorData = data as { message?: string; codestring?: string };
-        throw new DisplayableError(errorData.message || errorData.codestring || "API call failed");
-    }
-
-    private async apiCall(url: string, body: unknown) {
-        /**
-         * Make POST API call
-         */
-        return this.request(url, "post", body);
-    }
-
     private commandBody(type: string, value: StarLineCommandValue = 1): StarLineCommandBody {
         return { type, [type]: value };
     }
@@ -350,10 +49,7 @@ export class StarLine {
         /**
          * Execute device command via legacy blocking /set_param endpoint.
          */
-        return this.apiCall(
-            deviceSetParamUrl(deviceId),
-            this.commandBody(type, value),
-        ) as Promise<T>;
+        return this.request<T>(deviceSetParamUrl(deviceId), "post", this.commandBody(type, value));
     }
 
     async sendAsyncCommand<T = unknown>(
@@ -374,16 +70,10 @@ export class StarLine {
     }
 
     async startEngine(deviceId: string) {
-        /**
-         * Start engine
-         */
         return this.sendCommand(deviceId, "ign_start");
     }
 
     async stopEngine(deviceId: string) {
-        /**
-         * Stop engine
-         */
         return this.sendCommand(deviceId, "ign_stop");
     }
 
@@ -396,34 +86,18 @@ export class StarLine {
     }
 
     async arm(deviceId: string): Promise<CarStatus> {
-        /**
-         * Arm device
-         */
-        const data = await this.sendCommand<CarStatus>(deviceId, "arm_start");
-
-        return data;
+        return this.sendCommand<CarStatus>(deviceId, "arm_start");
     }
 
     async disarm(deviceId: string): Promise<CarStatus> {
-        /**
-         * Disarm device
-         */
-        const data = await this.sendCommand<CarStatus>(deviceId, "arm_stop");
-
-        return data;
+        return this.sendCommand<CarStatus>(deviceId, "arm_stop");
     }
 
     async armQuietly(deviceId: string): Promise<CarStatus> {
-        /**
-         * Arm quiet device
-         */
         return this.sendCommand<CarStatus>(deviceId, "arm_quiet", 1);
     }
 
     async disarmQuietly(deviceId: string): Promise<CarStatus> {
-        /**
-         * Disarm quiet device
-         */
         return this.sendCommand<CarStatus>(deviceId, "arm_quiet", 0);
     }
 
@@ -436,72 +110,42 @@ export class StarLine {
     }
 
     async shockSensorBypass(deviceId: string) {
-        /**
-         * Shock sensor bypass
-         */
         return this.sendCommand(deviceId, "shock_bpass");
     }
 
     async tiltSensorBypass(deviceId: string) {
-        /**
-         * Tilt sensor bypass
-         */
         return this.sendCommand(deviceId, "tilt_bpass");
     }
 
     async additionalSensorBypass(deviceId: string) {
-        /**
-         * Additional sensor bypass
-         */
         return this.sendCommand(deviceId, "add_sens_bpass");
     }
 
     async serviceModeEnable(deviceId: string) {
-        /**
-         * Service mode enable
-         */
         return this.sendCommand(deviceId, "valet", 1);
     }
 
     async serviceModeDisable(deviceId: string) {
-        /**
-         * Service mode disable
-         */
         return this.sendCommand(deviceId, "valet", 0);
     }
 
     async handsFreeModeEnable(deviceId: string) {
-        /**
-         * Hands free mode enable
-         */
         return this.sendCommand(deviceId, "hfree", 1);
     }
 
     async handsFreeModeDisable(deviceId: string) {
-        /**
-         * Hands free mode disable
-         */
         return this.sendCommand(deviceId, "hfree", 0);
     }
 
     async horn(deviceId: string) {
-        /**
-         * Horn
-         */
         return this.sendCommand(deviceId, "poke");
     }
 
     async disarmTrunk(deviceId: string) {
-        /**
-         * Disarm trunk
-         */
         return this.sendCommand(deviceId, "disarm_trunk");
     }
 
     async panic(deviceId: string) {
-        /**
-         * Panic
-         */
         return this.sendCommand(deviceId, "panic");
     }
 
@@ -538,16 +182,10 @@ export class StarLine {
     }
 
     async webastoOn(deviceId: string) {
-        /**
-         * Turn on Webasto
-         */
         return this.sendCommand(deviceId, "webasto_on");
     }
 
     async webastoOff(deviceId: string) {
-        /**
-         * Turn off Webasto
-         */
         return this.sendCommand(deviceId, "webasto_off");
     }
 
