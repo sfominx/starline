@@ -8,7 +8,7 @@ function deviceSetParamUrl(deviceId: string) {
     return `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/set_param`;
 }
 
-export type StarLineCommandValue = string | number | boolean;
+type StarLineCommandValue = string | number | boolean;
 
 type StarLineCommandBody = Record<string, unknown> & {
     type: string;
@@ -147,14 +147,6 @@ export class StarLineCommands extends StarLineClient {
         return this.sendCommandWithAsyncFallback(deviceId, "ign_stop", 1);
     }
 
-    engineOn(deviceId: string) {
-        return this.sendCommand(deviceId, "ign", 1);
-    }
-
-    engineOff(deviceId: string) {
-        return this.sendCommand(deviceId, "ign", 0);
-    }
-
     arm(deviceId: string): Promise<CarStatus> {
         return this.sendCommand<CarStatus>(deviceId, "arm_start");
     }
@@ -169,14 +161,6 @@ export class StarLineCommands extends StarLineClient {
 
     disarmQuietly(deviceId: string): Promise<CarStatus> {
         return this.sendCommand<CarStatus>(deviceId, "arm_quiet", 0);
-    }
-
-    armStartQuietly(deviceId: string): Promise<CarStatus> {
-        return this.sendCommand<CarStatus>(deviceId, "arm_start_quiet");
-    }
-
-    armStopQuietly(deviceId: string): Promise<CarStatus> {
-        return this.sendCommand<CarStatus>(deviceId, "arm_stop_quiet");
     }
 
     shockSensorBypass(deviceId: string) {
@@ -199,67 +183,11 @@ export class StarLineCommands extends StarLineClient {
         return this.sendCommand(deviceId, "valet", 0);
     }
 
-    handsFreeModeEnable(deviceId: string) {
-        return this.sendCommand(deviceId, "hfree", 1);
-    }
-
-    handsFreeModeDisable(deviceId: string) {
-        return this.sendCommand(deviceId, "hfree", 0);
-    }
-
     horn(deviceId: string) {
         return this.sendCommandWithAsyncFallback(deviceId, "poke", 1);
     }
 
-    disarmTrunk(deviceId: string) {
-        return this.sendCommand(deviceId, "disarm_trunk");
-    }
-
-    panic(deviceId: string) {
-        return this.sendCommand(deviceId, "panic");
-    }
-
-    getBalance(deviceId: string, simNumber: 1 | 2 = 1) {
-        return this.sendCommand(deviceId, "getbalance", simNumber);
-    }
-
     updatePosition(deviceId: string) {
         return this.sendCommandWithAsyncFallback(deviceId, "update_position", 1);
-    }
-
-    outputOn(deviceId: string) {
-        return this.sendCommand(deviceId, "out", 1);
-    }
-
-    outputOff(deviceId: string) {
-        return this.sendCommand(deviceId, "out", 0);
-    }
-
-    dvrOn(deviceId: string) {
-        return this.sendCommand(deviceId, "dvr", 1);
-    }
-
-    dvrOff(deviceId: string) {
-        return this.sendCommand(deviceId, "dvr", 0);
-    }
-
-    webastoEnable(deviceId: string) {
-        return this.sendCommand(deviceId, "webasto", 1);
-    }
-
-    webastoDisable(deviceId: string) {
-        return this.sendCommand(deviceId, "webasto", 0);
-    }
-
-    webastoOn(deviceId: string) {
-        return this.sendCommandWithAsyncFallback(deviceId, "webasto_on", 1);
-    }
-
-    webastoOff(deviceId: string) {
-        return this.sendCommandWithAsyncFallback(deviceId, "webasto_off", 1);
-    }
-
-    flex(deviceId: string, number: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9) {
-        return this.sendCommand(deviceId, `flex_${number}`);
     }
 }

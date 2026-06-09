@@ -1,8 +1,11 @@
-import { LocalStorage, Toast, showToast } from "@raycast/api";
+import { Toast, showToast } from "@raycast/api";
 import { createContext, useContext, useReducer } from "react";
 
-import { LOCAL_STORAGE } from "../starline/constants";
-import { FailedToLoadDevicesItemsError, getDisplayableErrorMessage } from "../utils/errors";
+import {
+    CaptchaNeededError,
+    FailedToLoadDevicesItemsError,
+    getDisplayableErrorMessage,
+} from "../utils/errors";
 import useOnceEffect from "../utils/hooks/useOnceEffect";
 
 import { useStarLine } from "./starline";
@@ -24,9 +27,6 @@ type DevicesContextType = DevicesState & {
     toggleDefault: (item: Item, isDefault: boolean) => void;
 };
 
-type DevicesProviderProps = {
-    children: ReactNode;
-};
 function getInitialState(): DevicesState {
     return {
         devices: [],
@@ -40,8 +40,7 @@ function getInitialState(): DevicesState {
 
 const DevicesContext = createContext<DevicesContextType | null>(null);
 
-export function DevicesProvider(props: DevicesProviderProps) {
-    const { children } = props;
+export function DevicesProvider({ children }: { children: ReactNode }) {
     const starline = useStarLine();
     const [state, setState] = useReducer(
         (previous: DevicesState, next: Partial<DevicesState>) => ({ ...previous, ...next }),
@@ -49,30 +48,26 @@ export function DevicesProvider(props: DevicesProviderProps) {
     );
 
     async function loadItems() {
+        setState({ isLoading: true });
+
         try {
-            setState({ isLoading: true });
+            const { result, error } = await starline.getDevices();
 
-            try {
-                const itemsResult = await starline.getDevices();
-
-                if (itemsResult.error !== undefined) {
-                    throw new FailedToLoadDevicesItemsError(itemsResult.error);
-                }
-
-                setState({ devices: itemsResult.result?.devices ?? [] });
-            } catch (error) {
-                if (error instanceof Error && error.name === "CaptchaNeededError") {
-                    setState({
-                        captchaNeeded: true,
-                        isLoading: false,
-                        captchaImg: await LocalStorage.getItem<string>(LOCAL_STORAGE.CAPTCHA_IMG),
-                        captchaSid: await LocalStorage.getItem<string>(LOCAL_STORAGE.CAPTCHA_SID),
-                    });
-                    return;
-                }
-                throw error;
+            if (error !== undefined) {
+                throw new FailedToLoadDevicesItemsError(error);
             }
+
+            setState({ devices: result?.devices ?? [], captchaNeeded: false });
         } catch (error) {
+            if (error instanceof CaptchaNeededError) {
+                setState({
+                    captchaNeeded: true,
+                    captchaImg: error.captchaImg,
+                    captchaSid: error.captchaSid,
+                });
+                return;
+            }
+
             await showToast(
                 Toast.Style.Failure,
                 "Failed to load devices items",
@@ -84,16 +79,15 @@ export function DevicesProvider(props: DevicesProviderProps) {
     }
 
     function toggleDefault(item: Item, isDefault: boolean) {
-        const devices = state.devices.map((device) =>
-            device.device_id === item.device_id ? { ...device, default: isDefault } : device,
-        );
-
-        setState({ devices });
+        setState({
+            devices: state.devices.map((device) =>
+                device.device_id === item.device_id ? { ...device, default: isDefault } : device,
+            ),
+        });
     }
 
     function updateState(next: SetStateAction<DevicesState>) {
-        const newState = typeof next === "function" ? next(state) : next;
-        setState(newState);
+        setState(typeof next === "function" ? next(state) : next);
     }
 
     useOnceEffect(() => {
@@ -104,9 +98,7 @@ export function DevicesProvider(props: DevicesProviderProps) {
         <DevicesContext.Provider
             value={{
                 ...state,
-                devices: state.devices,
                 isEmpty: state.devices.length === 0,
-                isLoading: state.isLoading,
                 loadItems,
                 updateState,
                 toggleDefault,

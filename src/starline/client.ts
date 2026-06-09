@@ -8,9 +8,9 @@ import { getItem, setItemWithLifetime } from "../utils/localStorage";
 
 import { DEVELOPER_STARLINE, ID_STARLINE, LOCAL_STORAGE } from "./constants";
 
-export type HttpMethod = "get" | "post" | "delete";
+type HttpMethod = "get" | "post" | "delete";
 
-export type RequestOptions = {
+type RequestOptions = {
     method?: HttpMethod;
     body?: unknown;
     retryOnAuthError?: boolean;

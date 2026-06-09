@@ -1,18 +1,20 @@
 import { LocalStorage, Toast, showToast } from "@raycast/api";
 
 import { StarLine } from "../starline/api";
+import { DEVICE_ACTIONS } from "../starline/commandConfig";
 import { LOCAL_STORAGE } from "../starline/constants";
 
-type DefaultDeviceCommandOptions = {
-    successMessage: string;
-    run: (starline: StarLine, deviceId: string) => Promise<unknown>;
-};
+import type { DeviceActionKey } from "../starline/commandConfig";
 
-export default async function defaultDeviceCommand(options: DefaultDeviceCommandOptions) {
-    const { successMessage, run } = options;
-    const defaultDevice = await LocalStorage.getItem(LOCAL_STORAGE.DEFAULT_DEVICE);
+function errorMessage(error: unknown) {
+    return error instanceof Error ? error.message : "Unknown error";
+}
 
-    if (defaultDevice === undefined) {
+export default async function defaultDeviceCommand(command: DeviceActionKey) {
+    const config = DEVICE_ACTIONS[command];
+    const deviceId = await LocalStorage.getItem(LOCAL_STORAGE.DEFAULT_DEVICE);
+
+    if (deviceId === undefined) {
         await showToast(
             Toast.Style.Failure,
             "No default device",
@@ -21,16 +23,15 @@ export default async function defaultDeviceCommand(options: DefaultDeviceCommand
         return;
     }
 
-    const toast = await showToast(Toast.Style.Animated, successMessage);
+    const toast = await showToast(Toast.Style.Animated, config.title);
 
     try {
-        const starline = new StarLine();
-        await run(starline, defaultDevice.toString());
+        await config.run(new StarLine(), deviceId.toString());
         toast.style = Toast.Style.Success;
-        toast.title = successMessage;
+        toast.title = config.successMessage;
     } catch (error) {
         toast.style = Toast.Style.Failure;
         toast.title = "Command failed";
-        toast.message = error instanceof Error ? error.message : "Unknown error";
+        toast.message = errorMessage(error);
     }
 }

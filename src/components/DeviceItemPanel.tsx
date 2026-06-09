@@ -1,19 +1,9 @@
 import { Action, ActionPanel, Alert, Icon, environment } from "@raycast/api";
 
-import AdditionalSensorBypassAction from "./actions/AdditionalSensorBypass";
-import ArmAction from "./actions/Arm";
-import ArmQuietlyAction from "./actions/ArmQuietly";
 import ClearAuthCacheAction from "./actions/ClearAuthCache";
 import CommandAction from "./actions/Command";
-import DisarmAction from "./actions/Disarm";
-import DisarmQuietlyAction from "./actions/DisarmQuietly";
-import ServiceModeDisableAction from "./actions/ServiceModeDisable";
-import ServiceModeEnableAction from "./actions/ServiceModeEnable";
+import { ConfiguredDeviceCommandAction } from "./actions/DeviceCommand";
 import SetAsDefaultDeviceAction from "./actions/SetAsDefaultDevice";
-import ShockSensorBypassAction from "./actions/ShockSensorBypass";
-import StartEngineAction from "./actions/StartEngine";
-import StopEngineAction from "./actions/StopEngine";
-import TiltSensorBypassAction from "./actions/TiltSensorBypass";
 import UnsetAsDefaultDeviceAction from "./actions/UnsetAsDefaultDevice";
 import { useSelectedDeviceItem } from "./context/deviceItem";
 import DeviceApiDetail from "./DeviceApiDetail";
@@ -22,35 +12,23 @@ import DeviceJsonMutationForm from "./DeviceJsonMutationForm";
 
 import type { DeviceApiDetailKind } from "./DeviceApiDetail";
 import type { DeviceJsonMutationKind } from "./DeviceJsonMutationForm";
+import type { DeviceActionKey } from "../starline/commandConfig";
 
-type CommandConfig = {
-    title: string;
-    command: string;
-    icon?: Icon;
-    value?: string | number | boolean;
-    successMessage?: string;
-    confirmation?: {
-        title: string;
-        message?: string;
-        primaryActionTitle?: string;
-        style?: Alert.ActionStyle;
-    };
-};
+const PRIMARY_COMMANDS: DeviceActionKey[] = [
+    "arm",
+    "startEngine",
+    "disarm",
+    "stopEngine",
+    "armQuietly",
+    "disarmQuietly",
+    "shockSensorBypass",
+    "tiltSensorBypass",
+    "additionalSensorBypass",
+    "serviceModeEnable",
+    "serviceModeDisable",
+];
 
-type DetailConfig = {
-    title: string;
-    kind: DeviceApiDetailKind;
-    icon: Icon;
-};
-
-type MutationConfig = {
-    title: string;
-    kind: DeviceJsonMutationKind;
-    icon: Icon;
-    defaultBody?: unknown;
-};
-
-const DEVICE_DETAILS: DetailConfig[] = [
+const DEVICE_DETAILS: Array<{ title: string; kind: DeviceApiDetailKind; icon: Icon }> = [
     { title: "Supported Controls", kind: "controls", icon: Icon.List },
     { title: "Live State", kind: "state", icon: Icon.Heartbeat },
     { title: "Position", kind: "position", icon: Icon.Map },
@@ -67,7 +45,12 @@ const DEVICE_DETAILS: DetailConfig[] = [
     { title: "OBD Errors", kind: "obdErrors", icon: Icon.ExclamationMark },
 ];
 
-const JSON_FORMS: MutationConfig[] = [
+const JSON_FORMS: Array<{
+    title: string;
+    kind: DeviceJsonMutationKind;
+    icon: Icon;
+    defaultBody?: unknown;
+}> = [
     { title: "Update Device Info", kind: "deviceInfo", icon: Icon.Pencil },
     { title: "Update Controls", kind: "controls", icon: Icon.List },
     { title: "Put Comfort Options", kind: "comfortOptions", icon: Icon.Window },
@@ -77,7 +60,7 @@ const JSON_FORMS: MutationConfig[] = [
     { title: "Update Monitoring Settings", kind: "monitoringSettings", icon: Icon.Gear },
 ];
 
-const QUICK_COMMANDS: CommandConfig[] = [
+const QUICK_COMMANDS = [
     {
         title: "Enable Hands Free",
         command: "hfree",
@@ -101,7 +84,7 @@ const QUICK_COMMANDS: CommandConfig[] = [
     },
 ];
 
-const ADVANCED_COMMANDS: CommandConfig[] = [
+const ADVANCED_COMMANDS = [
     {
         title: "Disarm Trunk",
         command: "disarm_trunk",
@@ -142,10 +125,6 @@ const ADVANCED_COMMANDS: CommandConfig[] = [
     })),
 ];
 
-function renderCommand(config: CommandConfig) {
-    return <CommandAction key={config.title} {...config} />;
-}
-
 function DevicesItemActionPanel({ showDetailsAction = true }: { showDetailsAction?: boolean }) {
     const item = useSelectedDeviceItem();
     const { device_id: deviceId, default: isDefault } = item;
@@ -161,18 +140,12 @@ function DevicesItemActionPanel({ showDetailsAction = true }: { showDetailsActio
                 {showDetailsAction && (
                     <Action.Push title="Show Details" target={<DeviceDetails item={item} />} />
                 )}
-                <ArmAction />
-                <StartEngineAction />
-                <DisarmAction />
-                <StopEngineAction />
-                <ArmQuietlyAction />
-                <DisarmQuietlyAction />
-                <ShockSensorBypassAction />
-                <TiltSensorBypassAction />
-                <AdditionalSensorBypassAction />
-                <ServiceModeEnableAction />
-                <ServiceModeDisableAction />
-                {QUICK_COMMANDS.map(renderCommand)}
+                {PRIMARY_COMMANDS.map((command) => (
+                    <ConfiguredDeviceCommandAction key={command} command={command} />
+                ))}
+                {QUICK_COMMANDS.map((command) => (
+                    <CommandAction key={command.title} {...command} />
+                ))}
                 {isDefault ? <UnsetAsDefaultDeviceAction /> : <SetAsDefaultDeviceAction />}
             </ActionPanel.Section>
 
@@ -206,7 +179,9 @@ function DevicesItemActionPanel({ showDetailsAction = true }: { showDetailsActio
             </ActionPanel.Section>
 
             <ActionPanel.Section title="Advanced Commands">
-                {ADVANCED_COMMANDS.map(renderCommand)}
+                {ADVANCED_COMMANDS.map((command) => (
+                    <CommandAction key={command.title} {...command} />
+                ))}
             </ActionPanel.Section>
 
             {environment.isDevelopment && (

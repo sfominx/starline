@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useStarLine } from "../context/starline";
 import { enabledDisabledLabel, statusLabel } from "../utils/format";
 
+import type { StarLine } from "../starline/api";
 import type { Item } from "../types/devices";
 import type {
     ControlsLibraryResponse,
@@ -147,6 +148,31 @@ function lastHoursPeriod(hours: number) {
     return { periodStart, periodEnd };
 }
 
+type ApiDetailLoader = (
+    starline: StarLine,
+    deviceId: string,
+    period: ReturnType<typeof lastHoursPeriod>,
+) => Promise<unknown>;
+
+const API_DETAIL_LOADERS: Record<DeviceApiDetailKind, ApiDetailLoader> = {
+    controls: (starline, deviceId) => starline.getControlsLibrary(deviceId),
+    info: (starline, deviceId) => starline.getDeviceInfo(deviceId),
+    position: (starline, deviceId) => starline.getPosition(deviceId),
+    state: (starline, deviceId) => starline.getState(deviceId),
+    obdParams: (starline, deviceId) => starline.getObdParams(deviceId),
+    obdErrors: (starline, deviceId) => starline.getObdErrors(deviceId),
+    data: (starline, deviceId) => starline.getDeviceData(deviceId),
+    report: (starline, deviceId) => starline.getDeviceReport(deviceId),
+    settings: (starline, deviceId) => starline.getSettings(deviceId),
+    comfortOptions: (starline, deviceId) => starline.getSupportedComfortOptions(deviceId),
+    events: (starline, deviceId, { periodStart, periodEnd }) =>
+        starline.getEvents(deviceId, { period_start: periodStart, period_end: periodEnd }),
+    ways: (starline, deviceId, { periodStart, periodEnd }) =>
+        starline.getWays(deviceId, { begin: periodStart, end: periodEnd, split_way: false }),
+    drivingScore: (starline, deviceId) => starline.getDrivingScore(deviceId, {}),
+    drivingScoreHistory: (starline, deviceId) => starline.getDrivingScoreHistory(deviceId, {}),
+};
+
 function DeviceApiDetail(props: DeviceApiDetailProps) {
     const { item, kind, title } = props;
     const starline = useStarLine();
@@ -158,62 +184,11 @@ function DeviceApiDetail(props: DeviceApiDetailProps) {
             try {
                 setIsLoading(true);
                 const deviceId = item.device_id.toString();
-                let data: unknown;
-                const { periodStart, periodEnd } = lastHoursPeriod(DEFAULT_HISTORY_HOURS);
-
-                switch (kind) {
-                    case "controls":
-                        data = await starline.getControlsLibrary(deviceId);
-                        break;
-                    case "info":
-                        data = await starline.getDeviceInfo(deviceId);
-                        break;
-                    case "position":
-                        data = await starline.getPosition(deviceId);
-                        break;
-                    case "state":
-                        data = await starline.getState(deviceId);
-                        break;
-                    case "obdParams":
-                        data = await starline.getObdParams(deviceId);
-                        break;
-                    case "obdErrors":
-                        data = await starline.getObdErrors(deviceId);
-                        break;
-                    case "data":
-                        data = await starline.getDeviceData(deviceId);
-                        break;
-                    case "report":
-                        data = await starline.getDeviceReport(deviceId);
-                        break;
-                    case "settings":
-                        data = await starline.getSettings(deviceId);
-                        break;
-                    case "comfortOptions":
-                        data = await starline.getSupportedComfortOptions(deviceId);
-                        break;
-                    case "events":
-                        data = await starline.getEvents(deviceId, {
-                            period_start: periodStart,
-                            period_end: periodEnd,
-                        });
-                        break;
-                    case "ways":
-                        data = await starline.getWays(deviceId, {
-                            begin: periodStart,
-                            end: periodEnd,
-                            split_way: false,
-                        });
-                        break;
-                    case "drivingScore":
-                        data = await starline.getDrivingScore(deviceId, {});
-                        break;
-                    case "drivingScoreHistory":
-                        data = await starline.getDrivingScoreHistory(deviceId, {});
-                        break;
-                    default:
-                        data = null;
-                }
+                const data = await API_DETAIL_LOADERS[kind](
+                    starline,
+                    deviceId,
+                    lastHoursPeriod(DEFAULT_HISTORY_HOURS),
+                );
 
                 setMarkdown(`# ${title}\n\n${formatTypedData(kind, data)}`);
             } catch (error) {

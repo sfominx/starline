@@ -1,11 +1,11 @@
 import type { Item } from "./devices";
 
-export type StarLineApiResponse = {
+type StarLineApiResponse = {
     code: number;
     codestring: string;
 };
 
-export type ControlDescription = {
+type ControlDescription = {
     title?: string;
 };
 
@@ -45,7 +45,7 @@ export type DevicePositionResponse = StarLineApiResponse & {
     };
 };
 
-export type DeviceEvent = {
+type DeviceEvent = {
     timestamp: number;
     groupId: number;
     type: number;
@@ -88,7 +88,7 @@ export type ObdErrorsResponse = StarLineApiResponse & {
     }>;
 };
 
-export type AsyncCommandStatus = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+type AsyncCommandStatus = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export type AsyncCommandResponse = StarLineApiResponse & {
     cmd_id?: string;
