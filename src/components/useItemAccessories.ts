@@ -14,6 +14,7 @@ export default function useItemAccessories(item: Item) {
                 tooltip: "Default device",
             });
         }
+
         if (item.car_state.arm) {
             accessories.push({
                 icon: { source: Icon.Lock, tintColor: Color.Green },
@@ -23,6 +24,18 @@ export default function useItemAccessories(item: Item) {
             accessories.push({
                 icon: { source: Icon.LockUnlocked, tintColor: Color.Red },
                 tooltip: "Disarmed",
+            });
+        }
+
+        if (item.car_state.run) {
+            accessories.push({
+                icon: { source: Icon.Play },
+                tooltip: "Engine running",
+            });
+        } else {
+            accessories.push({
+                icon: { source: Icon.Stop },
+                tooltip: "Engine stopped",
             });
         }
 

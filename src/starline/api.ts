@@ -293,24 +293,25 @@ export class StarLine {
         return data;
     }
 
-    async armQuietly(deviceId: string) {
+    async armQuietly(deviceId: string): Promise<CarStatus> {
         /**
          * Arm quiet device
          */
         const body = { type: "arm_quiet", arm_quiet: 1 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
-
+        const data = (await this.apiCall(deviceSetParamUrl(deviceId), body)) as CarStatus;
         console.log(data);
+
+        return data;
     }
 
-    async disarmQuietly(deviceId: string) {
+    async disarmQuietly(deviceId: string): Promise<CarStatus> {
         /**
          * Disarm quiet device
          */
         const body = { type: "arm_quiet", arm_quiet: 0 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
-
+        const data = (await this.apiCall(deviceSetParamUrl(deviceId), body)) as CarStatus;
         console.log(data);
+        return data;
     }
 
     async shockSensorBypass(deviceId: string) {
