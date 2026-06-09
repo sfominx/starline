@@ -1,0 +1,77 @@
+import React from "react";
+import { Action, ActionPanel, Form, Icon, List } from "@raycast/api";
+import { DevicesProvider, useDevicesContext } from "./context/devices";
+import { Item } from "./types/devices";
+import DevicesItem from "./components/Item";
+import { StarLineProvider } from "./context/starline";
+import DevicesListenersProvider from "./context/devicesListeners";
+
+function DevicesItemList({ devices }: { devices: Item[] }) {
+    return (
+        <>
+            {devices.map((device) => (
+                <DevicesItem
+                    key={device.device_id}
+                    item={device}
+                    icon={device.car_state.arm ? Icon.Lock : Icon.LockUnlocked}
+                />
+            ))}
+        </>
+    );
+}
+
+function DeviceComponent() {
+    const { devices, isLoading, captchaImg, captchaSid } = useDevicesContext();
+
+    if (captchaImg && captchaSid) {
+        return (
+            <Form
+                actions={
+                    <ActionPanel>
+                        <Action.SubmitForm
+                            title="Submit Captcha"
+                            onSubmit={(values) => console.log(values)}
+                        />
+                        {captchaImg && (
+                            <Action.OpenInBrowser
+                                url={captchaImg}
+                                shortcut={{ modifiers: ["cmd"], key: "." }}
+                            />
+                        )}
+                    </ActionPanel>
+                }
+            >
+                <Form.Description
+                    title="Captcha needed"
+                    text="Please view captcha from first url and enter the captcha to continue"
+                />
+                <Form.TextField id="captachImg" title="URL" defaultValue={captchaImg} />
+                <Form.TextField
+                    id="captchaValue"
+                    title="Captcha"
+                    placeholder="Captcha value"
+                    autoFocus
+                />
+            </Form>
+        );
+    }
+    return (
+        <List searchBarPlaceholder="Search device" isLoading={isLoading}>
+            <DevicesItemList devices={devices} />
+        </List>
+    );
+}
+
+function DeviceCommand() {
+    return (
+        <StarLineProvider>
+            <DevicesListenersProvider>
+                <DevicesProvider>
+                    <DeviceComponent />
+                </DevicesProvider>
+            </DevicesListenersProvider>
+        </StarLineProvider>
+    );
+}
+
+export default DeviceCommand;
