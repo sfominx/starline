@@ -1,7 +1,8 @@
-import React from "react";
 import { Action, Icon, Toast, confirmAlert, showToast } from "@raycast/api";
-import { useSelectedDeviceItem } from "../context/deviceItem";
+import React from "react";
+
 import { StarLine } from "../../starline/api";
+import { useSelectedDeviceItem } from "../context/deviceItem";
 
 function StartEngineAction() {
     const selectedItem = useSelectedDeviceItem();
@@ -15,7 +16,9 @@ function StartEngineAction() {
             },
         });
 
-        if (!confirmed) return;
+        if (!confirmed) {
+            return;
+        }
 
         const starline = new StarLine();
         await starline.startEngine(selectedItem.device_id.toString());

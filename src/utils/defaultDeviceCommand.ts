@@ -1,5 +1,6 @@
 import { LocalStorage, Toast, showToast } from "@raycast/api";
-import StarLine from "../starline/api";
+
+import { StarLine } from "../starline/api";
 import { LOCAL_STORAGE } from "../starline/constants";
 
 type DefaultDeviceCommandOptions = {

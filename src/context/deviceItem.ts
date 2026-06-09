@@ -1,5 +1,6 @@
 import { createContext } from "react";
-import { Item } from "../types/devices";
+
+import type { Item } from "../types/devices";
 
 const DevicesItemContext = createContext<Item | null>(null);
 

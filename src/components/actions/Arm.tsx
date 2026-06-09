@@ -1,8 +1,9 @@
-import React from "react";
 import { Action, Icon, Toast, showToast } from "@raycast/api";
-import { useSelectedDeviceItem } from "../context/deviceItem";
-import { StarLine } from "../../starline/api";
+import React from "react";
+
 import { useOptionalDevicesContext } from "../../context/devices";
+import { StarLine } from "../../starline/api";
+import { useSelectedDeviceItem } from "../context/deviceItem";
 
 function ArmAction() {
     const selectedItem = useSelectedDeviceItem();

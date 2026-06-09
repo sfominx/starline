@@ -1,7 +1,8 @@
 import { Action, Alert, Icon, Toast, confirmAlert, showToast } from "@raycast/api";
-import { useSelectedDeviceItem } from "../context/deviceItem";
-import { StarLine } from "../../starline/api";
+
 import { useOptionalDevicesContext } from "../../context/devices";
+import { StarLine } from "../../starline/api";
+import { useSelectedDeviceItem } from "../context/deviceItem";
 
 function DisarmQuietlyAction() {
     const selectedItem = useSelectedDeviceItem();
@@ -17,7 +18,9 @@ function DisarmQuietlyAction() {
             },
         });
 
-        if (!confirmed) return;
+        if (!confirmed) {
+            return;
+        }
 
         const starline = new StarLine();
         const data = await starline.disarmQuietly(selectedItem.device_id.toString());

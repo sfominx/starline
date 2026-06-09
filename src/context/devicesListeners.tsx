@@ -1,6 +1,9 @@
-import React, { createContext, MutableRefObject, ReactNode, useContext, useRef } from "react";
-import { Item } from "../types/devices";
+import React, { createContext, useContext, useRef } from "react";
+
 import { FailedToLoadDevicesItemsError } from "../utils/errors";
+
+import type { Item } from "../types/devices";
+import type { MutableRefObject, ReactNode } from "react";
 
 type ItemListener = (item: Item | FailedToLoadDevicesItemsError) => void;
 
@@ -21,7 +24,7 @@ function DevicesListenersProvider({ children }: { children: ReactNode }) {
         } else {
             listeners.current.forEach((listener, itemId) => {
                 const item = itemsOrError.find((itm) => itm.device_id.toString() === itemId);
-                if (item) {
+                if (item !== undefined) {
                     listener(item);
                 }
             });
@@ -46,7 +49,7 @@ function DevicesListenersProvider({ children }: { children: ReactNode }) {
 
 export const useDevicesItemPublisher = () => {
     const context = useContext(DevicesListenersContext);
-    if (context == null) {
+    if (context === null) {
         throw new Error("useDevicesItemPublisher must be used within a DevicesListenersProvider");
     }
 
@@ -56,8 +59,9 @@ export const useDevicesItemPublisher = () => {
 /** Allows you to subscribe to a specific item and get notified when it changes. */
 export const useDevicesItemSubscriber = () => {
     const context = useContext(DevicesListenersContext);
-    if (context == null)
+    if (context === null) {
         throw new Error("useDevicesItemSubscriber must be used within a DevicesListenersProvider");
+    }
 
     return (itemId: string) => {
         let timeoutId: NodeJS.Timeout;
@@ -72,7 +76,7 @@ export const useDevicesItemSubscriber = () => {
                     resolve(itemOrError);
                     clearTimeout(timeoutId);
                 } catch (error) {
-                    reject(error);
+                    reject(error instanceof Error ? error : new Error(String(error)));
                 }
             });
 

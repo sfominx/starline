@@ -1,9 +1,12 @@
-import { LocalStorage, getPreferenceValues } from "@raycast/api";
 import { createHash } from "crypto";
+
+import { LocalStorage, getPreferenceValues } from "@raycast/api";
 import fetch from "node-fetch";
-import { DEVELOPER_STARLINE, ID_STARLINE, LOCAL_STORAGE } from "./constants";
+
 import { CaptchaNeededError, DisplayableError } from "../utils/errors";
 import { getItem, setItemWithLifetime } from "../utils/localStorage";
+
+import { DEVELOPER_STARLINE, ID_STARLINE, LOCAL_STORAGE } from "./constants";
 
 export type HttpMethod = "get" | "post" | "delete";
 
@@ -12,14 +15,18 @@ export type RequestOptions = {
 };
 
 function parseSlnetCookie(setCookie: string | null) {
-    if (!setCookie) return undefined;
+    if (!setCookie) {
+        return undefined;
+    }
 
     const match = setCookie.match(/(?:^|[,;\s])slnet=([^;,\s]+)/);
     return match?.[1];
 }
 
 function isAuthError(responseStatus: number, data: unknown) {
-    if (responseStatus === 401 || responseStatus === 403) return true;
+    if (responseStatus === 401 || responseStatus === 403) {
+        return true;
+    }
 
     const errorData = data as { code?: number; message?: string; codestring?: string };
     const message = `${errorData.message || ""} ${errorData.codestring || ""}`.toLowerCase();
@@ -44,11 +51,11 @@ export class StarLineClient {
         this.Password = Password;
     }
 
-    async initialize(): Promise<this> {
+    initialize(): Promise<this> {
         /**
          * Initialize the API client
          */
-        return this;
+        return Promise.resolve(this);
     }
 
     static async clearAuthCache() {
@@ -288,7 +295,7 @@ export class StarLineClient {
             return data;
         }
 
-        if (options.retryOnAuthError && isAuthError(response.status, data)) {
+        if (options.retryOnAuthError === true && isAuthError(response.status, data)) {
             await this.clearWebApiAuthCache();
             return this.request<T>(url, method, body, { retryOnAuthError: false });
         }

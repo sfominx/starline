@@ -1,4 +1,5 @@
 import { LocalStorage } from "@raycast/api";
+
 import { EOL_MAPPING, SECRETS_LIFETIME_HOURS } from "../starline/constants";
 
 export async function setItemWithLifetime(itemName: string, itemValue: string) {

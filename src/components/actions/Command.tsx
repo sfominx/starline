@@ -1,7 +1,8 @@
-import React from "react";
 import { Action, Alert, Icon, Toast, confirmAlert, showToast } from "@raycast/api";
-import { useSelectedDeviceItem } from "../context/deviceItem";
+import React from "react";
+
 import { StarLine } from "../../starline/api";
+import { useSelectedDeviceItem } from "../context/deviceItem";
 
 type CommandActionProps = {
     title: string;
@@ -31,8 +32,8 @@ function CommandAction(props: CommandActionProps) {
     const selectedItem = useSelectedDeviceItem();
 
     const supportedCommands = new Set<string>([
-        ...(selectedItem.functions || []),
-        ...(selectedItem.controls || []).map((control) => control.type),
+        ...selectedItem.functions,
+        ...selectedItem.controls.map((control) => control.type),
     ]);
 
     if (requireSupported && supportedCommands.size > 0 && !supportedCommands.has(command)) {
@@ -46,11 +47,13 @@ function CommandAction(props: CommandActionProps) {
                 message: confirmation.message,
                 primaryAction: {
                     title: confirmation.primaryActionTitle || title,
-                    style: confirmation.style || Alert.ActionStyle.Default,
+                    style: confirmation.style ?? Alert.ActionStyle.Default,
                 },
             });
 
-            if (!confirmed) return;
+            if (!confirmed) {
+                return;
+            }
         }
 
         const toast = await showToast(Toast.Style.Animated, title);

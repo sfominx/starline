@@ -1,4 +1,5 @@
 import { Action, Alert, Icon, Toast, confirmAlert, showToast } from "@raycast/api";
+
 import { StarLine } from "../../starline/api";
 
 type ClearAuthCacheActionProps = {
@@ -19,7 +20,9 @@ function ClearAuthCacheAction(props: ClearAuthCacheActionProps) {
             },
         });
 
-        if (!confirmed) return;
+        if (!confirmed) {
+            return;
+        }
 
         await StarLine.clearAuthCache();
         await showToast(Toast.Style.Success, "Auth cache cleared");

@@ -1,10 +1,12 @@
 import { Action, ActionPanel, Form, List, showToast, Toast } from "@raycast/api";
-import { DevicesProvider, useDevicesContext } from "./context/devices";
-import { Item } from "./types/devices";
-import DevicesItem from "./components/Item";
-import { StarLineProvider, useStarLine } from "./context/starline";
-import DevicesListenersProvider from "./context/devicesListeners";
+
 import ClearAuthCacheAction from "./components/actions/ClearAuthCache";
+import DevicesItem from "./components/Item";
+import { DevicesProvider, useDevicesContext } from "./context/devices";
+import DevicesListenersProvider from "./context/devicesListeners";
+import { StarLineProvider, useStarLine } from "./context/starline";
+
+import type { Item } from "./types/devices";
 
 function DevicesItemList({ devices }: { devices: Item[] }) {
     return (

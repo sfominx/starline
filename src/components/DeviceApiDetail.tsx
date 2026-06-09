@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
 import { Detail, Toast, showToast } from "@raycast/api";
-import { Item } from "../types/devices";
+import React, { useEffect, useState } from "react";
+
 import { useStarLine } from "../context/starline";
-import DevicesItemActionPanel from "./DeviceItemPanel";
-import DevicesItemContext from "./context/deviceItem";
-import {
+
+import type { Item } from "../types/devices";
+import type {
     ControlsLibraryResponse,
     DeviceEventsResponse,
     DevicePositionResponse,
@@ -41,30 +41,38 @@ function formatJson(value: unknown) {
 }
 
 function formatUnixTimestamp(value?: number | string) {
-    if (value === undefined) return "—";
+    if (value === undefined) {
+        return "—";
+    }
     const timestamp = typeof value === "string" ? Number(value) : value;
-    if (Number.isNaN(timestamp)) return value.toString();
+    if (Number.isNaN(timestamp)) {
+        return value.toString();
+    }
     return new Date(timestamp * 1000).toLocaleString();
 }
 
 function boolLabel(value: unknown) {
-    if (value === undefined) return "—";
-    if (typeof value === "boolean") return value ? "Yes" : "No";
+    if (value === undefined) {
+        return "—";
+    }
+    if (typeof value === "boolean") {
+        return value ? "Yes" : "No";
+    }
     return String(value);
 }
 
 function formatControls(data: ControlsLibraryResponse) {
-    const controls = Object.entries(data.controls || {})
-        .map(([command, control]) => `| \`${command}\` | ${control.title || "—"} |`)
+    const controls = Object.entries(data.controls)
+        .map(([command, control]) => `| \`${command}\` | ${control.title ?? "—"} |`)
         .join("\n");
 
-    return `| Command | Title |\n| --- | --- |\n${controls || "| — | — |"}`;
+    return `| Command | Title |\n| --- | --- |\n${controls.length > 0 ? controls : "| — | — |"}`;
 }
 
 function formatState(data: DeviceStateResponse) {
     const { state } = data;
 
-    return `## Security\n\n| Field | Value |\n| --- | --- |\n| Armed | ${boolLabel(state.car_state?.arm)} |\n| Alarm | ${boolLabel(state.car_state?.alarm)} |\n| Service Mode | ${boolLabel(state.car_state?.valet)} |\n| Hijack | ${boolLabel(state.car_state?.hijack)} |\n\n## Engine\n\n| Field | Value |\n| --- | --- |\n| Running | ${boolLabel(state.car_state?.run)} |\n| Ignition | ${boolLabel(state.car_state?.ign)} |\n| Remote Start | ${boolLabel(state.car_state?.r_start)} |\n| Webasto | ${boolLabel(state.car_state?.webasto)} |\n\n## Telemetry\n\n| Field | Value |\n| --- | --- |\n| Battery | ${state.battery ?? "—"} |\n| Cabin Temp | ${state.ctemp ?? "—"}°C |\n| Engine Temp | ${state.etemp ?? "—"}°C |\n| GPS Level | ${state.gps_lvl ?? "—"} |\n| GSM Level | ${state.gsm_lvl ?? "—"} |\n| Last Activity | ${formatUnixTimestamp(state.ts_activity)} |\n\n## Position\n\n| Field | Value |\n| --- | --- |\n| X / Lat | ${state.position?.x ?? "—"} |\n| Y / Lon | ${state.position?.y ?? "—"} |\n| Timestamp | ${formatUnixTimestamp(state.position?.ts)} |`;
+    return `## Security\n\n| Field | Value |\n| --- | --- |\n| Armed | ${boolLabel(state.car_state.arm)} |\n| Alarm | ${boolLabel(state.car_state.alarm)} |\n| Service Mode | ${boolLabel(state.car_state.valet)} |\n| Hijack | ${boolLabel(state.car_state.hijack)} |\n\n## Engine\n\n| Field | Value |\n| --- | --- |\n| Running | ${boolLabel(state.car_state.run)} |\n| Ignition | ${boolLabel(state.car_state.ign)} |\n| Remote Start | ${boolLabel(state.car_state.r_start)} |\n| Webasto | ${boolLabel(state.car_state.webasto)} |\n\n## Telemetry\n\n| Field | Value |\n| --- | --- |\n| Battery | ${state.battery ?? "—"} |\n| Cabin Temp | ${state.ctemp ?? "—"}°C |\n| Engine Temp | ${state.etemp ?? "—"}°C |\n| GPS Level | ${state.gps_lvl ?? "—"} |\n| GSM Level | ${state.gsm_lvl ?? "—"} |\n| Last Activity | ${formatUnixTimestamp(state.ts_activity)} |\n\n## Position\n\n| Field | Value |\n| --- | --- |\n| X / Lat | ${state.position?.x ?? "—"} |\n| Y / Lon | ${state.position?.y ?? "—"} |\n| Timestamp | ${formatUnixTimestamp(state.position?.ts)} |`;
 }
 
 function formatPosition(data: DevicePositionResponse) {
@@ -221,15 +229,7 @@ function DeviceApiDetail(props: DeviceApiDetailProps) {
         void load();
     }, [item.device_id, kind, starline, title]);
 
-    return (
-        <DevicesItemContext.Provider value={item}>
-            <Detail
-                isLoading={isLoading}
-                markdown={markdown}
-                actions={<DevicesItemActionPanel showDetailsAction={false} />}
-            />
-        </DevicesItemContext.Provider>
-    );
+    return <Detail isLoading={isLoading} markdown={markdown} />;
 }
 
 export default DeviceApiDetail;

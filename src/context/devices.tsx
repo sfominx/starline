@@ -1,11 +1,15 @@
-import React, { ReactNode, createContext, useContext, useReducer } from "react";
 import { LocalStorage, Toast, showToast } from "@raycast/api";
-import { Devices, Item } from "../types/devices";
-import useOnceEffect from "../utils/hooks/useOnceEffect";
-import { useStarLine } from "./starline";
-import { FailedToLoadDevicesItemsError, getDisplayableErrorMessage } from "../utils/errors";
-import { useDevicesItemPublisher } from "./devicesListeners";
+import React, { createContext, useContext, useReducer } from "react";
+
 import { LOCAL_STORAGE } from "../starline/constants";
+import { FailedToLoadDevicesItemsError, getDisplayableErrorMessage } from "../utils/errors";
+import useOnceEffect from "../utils/hooks/useOnceEffect";
+
+import { useDevicesItemPublisher } from "./devicesListeners";
+import { useStarLine } from "./starline";
+
+import type { Devices, Item } from "../types/devices";
+import type { ReactNode } from "react";
 
 type DevicesState = Devices & {
     isLoading: boolean;
@@ -18,7 +22,7 @@ type DevicesContextType = DevicesState & {
     isEmpty: boolean;
     loadItems: () => Promise<void>;
     updateState: (next: React.SetStateAction<DevicesState>) => void;
-    toggleDefault: (item: Item, isDefault: boolean) => Promise<void>;
+    toggleDefault: (item: Item, isDefault: boolean) => void;
 };
 
 type DevicesProviderProps = {
@@ -55,8 +59,10 @@ export function DevicesProvider(props: DevicesProviderProps) {
 
             try {
                 const [itemsResult] = await Promise.all([starline.getDevices()]);
-                if (itemsResult.error) throw itemsResult.error;
-                if (itemsResult.result) {
+                if (itemsResult.error !== undefined) {
+                    throw new FailedToLoadDevicesItemsError(itemsResult.error);
+                }
+                if (itemsResult.result !== undefined) {
                     // console.log(JSON.stringify(itemsResult.result.devices[0].controls, null, "  "));
                     devices = itemsResult.result.devices;
                 }
@@ -86,7 +92,7 @@ export function DevicesProvider(props: DevicesProviderProps) {
         }
     }
 
-    async function toggleDefault(item: Item, isDefault: boolean) {
+    function toggleDefault(item: Item, isDefault: boolean) {
         const newDevices: Item[] = [];
 
         state.devices.forEach((element) => {
@@ -130,7 +136,7 @@ export const useOptionalDevicesContext = () => useContext(DevicesContext);
 
 export const useDevicesContext = () => {
     const context = useOptionalDevicesContext();
-    if (context == null) {
+    if (context === null) {
         throw new Error("useDevices must be used within a DevicesProvider");
     }
 

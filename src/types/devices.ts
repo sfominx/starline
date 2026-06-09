@@ -1,4 +1,4 @@
-export interface Item {
+export type Item = {
     object: "item";
     default: boolean;
 
@@ -67,16 +67,16 @@ export interface Item {
     };
     functions: [string];
     controls: [{ position: number; type: string }];
-}
+};
 
-export interface Devices {
+export type Devices = {
     devices: Item[];
     shared_devices?: [];
     code?: number;
     codestring?: string;
-}
+};
 
-export interface CarStatus {
+export type CarStatus = {
     add_sens_bpass: string;
     alarm: string;
     arm: string;
@@ -99,4 +99,4 @@ export interface CarStatus {
     type: string;
     valet: string;
     webasto: string;
-}
+};

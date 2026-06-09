@@ -1,8 +1,10 @@
 import { LocalStorage } from "@raycast/api";
-import { DEVELOPER_STARLINE, LOCAL_STORAGE } from "./constants";
+
 import { StarLineCommands } from "./commands";
-import { Devices } from "../types/devices";
-import {
+import { DEVELOPER_STARLINE, LOCAL_STORAGE } from "./constants";
+
+import type { Devices } from "../types/devices";
+import type {
     ControlsLibraryResponse,
     DeviceEventsResponse,
     DevicePositionResponse,
@@ -21,18 +23,15 @@ export class StarLineDeviceApi extends StarLineCommands {
         const url = `${DEVELOPER_STARLINE}json/v2/user/${userId}/user_info`;
         const data = await this.request<Devices>(url);
 
-        if (data) {
-            const defaultDevice = Number(
-                await LocalStorage.getItem<number>(LOCAL_STORAGE.DEFAULT_DEVICE),
-            );
+        const defaultDevice = Number(
+            await LocalStorage.getItem<number>(LOCAL_STORAGE.DEFAULT_DEVICE),
+        );
 
-            data.devices.forEach((element, index) => {
-                data.devices[index].default = element.device_id === defaultDevice;
-            });
+        data.devices.forEach((element, index) => {
+            data.devices[index].default = element.device_id === defaultDevice;
+        });
 
-            return { result: data };
-        }
-        return { error: "error" };
+        return { result: data };
     }
 
     async getControlsLibrary<T = ControlsLibraryResponse>(deviceId: string) {

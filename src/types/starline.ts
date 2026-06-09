@@ -1,4 +1,4 @@
-import { Item } from "./devices";
+import type { Item } from "./devices";
 
 export type StarLineApiResponse = {
     code: number;

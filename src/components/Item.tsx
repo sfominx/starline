@@ -1,9 +1,10 @@
 import { List } from "@raycast/api";
 
-import { Item } from "../types/devices";
-import DevicesItemActionPanel from "./DeviceItemPanel";
 import DevicesItemContext from "./context/deviceItem";
+import DevicesItemActionPanel from "./DeviceItemPanel";
 import useItemAccessories from "./useItemAccessories";
+
+import type { Item } from "../types/devices";
 
 type DevicesItemProps = {
     item: Item;

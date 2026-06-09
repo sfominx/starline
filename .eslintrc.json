@@ -1,27 +1,180 @@
 {
     "root": true,
     "env": {
-        "es2020": true,
+        "es2023": true,
         "node": true
     },
     "parser": "@typescript-eslint/parser",
-    "parserOptions": { "project": "./tsconfig.json" },
-    "plugins": ["@typescript-eslint", "react-hooks", "prettier"],
+    "parserOptions": {
+        "project": "./tsconfig.eslint.json",
+        "tsconfigRootDir": "."
+    },
+    "plugins": ["@typescript-eslint", "react", "react-hooks", "import", "promise", "prettier"],
     "extends": [
+        "@raycast",
         "eslint:recommended",
-        "plugin:@typescript-eslint/recommended",
+        "plugin:@typescript-eslint/strict-type-checked",
+        "plugin:@typescript-eslint/stylistic-type-checked",
+        "plugin:react/recommended",
+        "plugin:react-hooks/recommended",
         "plugin:promise/recommended",
+        "plugin:import/recommended",
+        "plugin:import/typescript",
         "prettier"
     ],
-    "rules": {
-        "prettier/prettier": ["error"],
-        "@typescript-eslint/no-unnecessary-type-constraint": "off",
-        "@typescript-eslint/no-explicit-any": "off",
-        "@typescript-eslint/no-floating-promises": ["error"],
-        "react-hooks/rules-of-hooks": "error",
-        "@typescript-eslint/ban-ts-comment": "off",
-        "promise/always-return": "off",
-        "lines-between-class-members": ["error", "always"]
+    "settings": {
+        "react": {
+            "version": "detect"
+        },
+        "import/resolver": {
+            "typescript": {
+                "project": "./tsconfig.eslint.json"
+            }
+        }
     },
-    "ignorePatterns": ["raycast-env.d.ts"]
+    "rules": {
+        "prettier/prettier": "error",
+
+        "@typescript-eslint/array-type": ["error", { "default": "array-simple" }],
+        "@typescript-eslint/ban-ts-comment": [
+            "error",
+            {
+                "ts-expect-error": "allow-with-description",
+                "ts-ignore": true,
+                "ts-nocheck": true,
+                "ts-check": false,
+                "minimumDescriptionLength": 10
+            }
+        ],
+        "@typescript-eslint/consistent-type-definitions": ["error", "type"],
+        "@typescript-eslint/consistent-type-imports": [
+            "error",
+            { "prefer": "type-imports", "fixStyle": "separate-type-imports" }
+        ],
+        "@typescript-eslint/explicit-function-return-type": "off",
+        "@typescript-eslint/explicit-member-accessibility": ["error", { "accessibility": "no-public" }],
+        "@typescript-eslint/no-confusing-void-expression": ["error", { "ignoreArrowShorthand": true }],
+        "@typescript-eslint/no-empty-function": "error",
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-floating-promises": ["error", { "ignoreVoid": true }],
+        "@typescript-eslint/no-import-type-side-effects": "error",
+        "@typescript-eslint/no-misused-promises": [
+            "error",
+            { "checksVoidReturn": { "attributes": false } }
+        ],
+        "@typescript-eslint/no-non-null-assertion": "error",
+        "@typescript-eslint/no-redundant-type-constituents": "error",
+        "@typescript-eslint/no-unnecessary-condition": "error",
+        "@typescript-eslint/no-unnecessary-type-assertion": "error",
+        "@typescript-eslint/no-unsafe-argument": "error",
+        "@typescript-eslint/no-unsafe-assignment": "error",
+        "@typescript-eslint/no-unsafe-call": "error",
+        "@typescript-eslint/no-unsafe-member-access": "error",
+        "@typescript-eslint/no-unsafe-return": "error",
+        "@typescript-eslint/prefer-nullish-coalescing": "off",
+        "@typescript-eslint/prefer-optional-chain": "error",
+        "@typescript-eslint/restrict-template-expressions": [
+            "error",
+            { "allowNumber": true, "allowBoolean": true, "allowNullish": true }
+        ],
+        "@typescript-eslint/return-await": ["error", "in-try-catch"],
+        "@typescript-eslint/strict-boolean-expressions": [
+            "error",
+            {
+                "allowString": true,
+                "allowNumber": false,
+                "allowNullableObject": true,
+                "allowNullableBoolean": false,
+                "allowNullableString": true,
+                "allowNullableNumber": false,
+                "allowAny": false
+            }
+        ],
+        "@typescript-eslint/switch-exhaustiveness-check": "error",
+
+        "eqeqeq": ["error", "always"],
+        "curly": ["error", "all"],
+        "default-case-last": "error",
+        "default-param-last": "off",
+        "dot-notation": "error",
+        "lines-between-class-members": ["error", "always"],
+        "no-alert": "error",
+        "no-console": ["error", { "allow": ["warn", "error"] }],
+        "no-else-return": ["error", { "allowElseIf": false }],
+        "no-implicit-coercion": "error",
+        "no-nested-ternary": "error",
+        "no-param-reassign": "error",
+        "no-restricted-imports": [
+            "error",
+            {
+                "paths": [
+                    {
+                        "name": "../../context/devices",
+                        "importNames": ["useDevicesContext"],
+                        "message": "Reusable action components must use useOptionalDevicesContext instead."
+                    }
+                ]
+            }
+        ],
+        "no-return-await": "off",
+        "no-void": ["error", { "allowAsStatement": true }],
+        "object-shorthand": ["error", "always"],
+        "prefer-const": "error",
+        "prefer-template": "error",
+        "require-await": "off",
+        "yoda": "error",
+
+        "import/no-cycle": "error",
+        "import/no-default-export": "off",
+        "import/no-duplicates": "error",
+        "import/no-extraneous-dependencies": [
+            "error",
+            { "devDependencies": ["**/*.test.ts", "**/*.test.tsx", "test/**/*", "jest.config.js"] }
+        ],
+        "import/order": [
+            "error",
+            {
+                "groups": ["builtin", "external", "internal", "parent", "sibling", "index", "type"],
+                "newlines-between": "always",
+                "alphabetize": { "order": "asc", "caseInsensitive": true }
+            }
+        ],
+
+        "promise/always-return": "off",
+        "promise/catch-or-return": "error",
+
+        "react/jsx-no-useless-fragment": "error",
+        "react/prop-types": "off",
+        "react/react-in-jsx-scope": "off",
+        "react-hooks/rules-of-hooks": "error",
+        "react-hooks/exhaustive-deps": "error"
+    },
+    "overrides": [
+        {
+            "files": ["*.js", "jest.config.js"],
+            "parserOptions": {
+                "project": null
+            },
+            "rules": {
+                "@typescript-eslint/no-var-requires": "off"
+            }
+        },
+        {
+            "files": ["*.d.ts"],
+            "rules": {
+                "@typescript-eslint/consistent-type-definitions": "off",
+                "@typescript-eslint/no-explicit-any": "off"
+            }
+        },
+        {
+            "files": ["*.test.ts", "*.test.tsx", "test/**/*"],
+            "env": {
+                "jest": true
+            },
+            "rules": {
+                "@typescript-eslint/no-empty-function": "off"
+            }
+        }
+    ],
+    "ignorePatterns": ["dist", "node_modules", "raycast-env.d.ts"]
 }

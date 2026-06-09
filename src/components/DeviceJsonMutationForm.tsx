@@ -1,4 +1,3 @@
-import React, { useState } from "react";
 import {
     Action,
     ActionPanel,
@@ -9,8 +8,11 @@ import {
     popToRoot,
     showToast,
 } from "@raycast/api";
-import { Item } from "../types/devices";
+import React, { useState } from "react";
+
 import { useStarLine } from "../context/starline";
+
+import type { Item } from "../types/devices";
 
 type DeviceJsonMutationKind =
     | "deviceInfo"
@@ -29,7 +31,7 @@ type DeviceJsonMutationFormProps = {
 };
 
 function defaultJson(value: unknown) {
-    return JSON.stringify(value || {}, null, 4);
+    return JSON.stringify(value === undefined ? {} : value, null, 4);
 }
 
 function DeviceJsonMutationForm(props: DeviceJsonMutationFormProps) {
@@ -57,7 +59,9 @@ function DeviceJsonMutationForm(props: DeviceJsonMutationFormProps) {
             },
         });
 
-        if (!confirmed) return;
+        if (!confirmed) {
+            return;
+        }
 
         const toast = await showToast(Toast.Style.Animated, title);
         const deviceId = item.device_id.toString();

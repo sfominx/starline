@@ -1,7 +1,8 @@
-import { DEVELOPER_STARLINE } from "./constants";
 import { StarLineClient } from "./client";
-import { CarStatus } from "../types/devices";
-import { AsyncCommandResponse } from "../types/starline";
+import { DEVELOPER_STARLINE } from "./constants";
+
+import type { CarStatus } from "../types/devices";
+import type { AsyncCommandResponse } from "../types/starline";
 
 function deviceSetParamUrl(deviceId: string) {
     return `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/set_param`;
@@ -84,7 +85,9 @@ export class StarLineCommands extends StarLineClient {
         while (Date.now() <= deadline) {
             const status = await this.getAsyncCommandStatus(deviceId, commandId);
 
-            if (status.status === 2) return status;
+            if (status.status === 2) {
+                return status;
+            }
 
             if (status.status >= 3) {
                 throw new Error(getAsyncCommandErrorMessage(status));
@@ -104,7 +107,9 @@ export class StarLineCommands extends StarLineClient {
     ) {
         const response = await this.sendAsyncCommand(deviceId, type, value);
 
-        if (response.status === 2) return response;
+        if (response.status === 2) {
+            return response;
+        }
 
         if (response.status >= 3) {
             throw new Error(getAsyncCommandErrorMessage(response));

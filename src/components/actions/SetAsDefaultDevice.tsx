@@ -1,7 +1,8 @@
 import { Action, Icon, LocalStorage, Toast, showToast } from "@raycast/api";
-import { useSelectedDeviceItem } from "../context/deviceItem";
-import { LOCAL_STORAGE } from "../../starline/constants";
+
 import { useOptionalDevicesContext } from "../../context/devices";
+import { LOCAL_STORAGE } from "../../starline/constants";
+import { useSelectedDeviceItem } from "../context/deviceItem";
 
 function SetAsDefaultDeviceAction() {
     const selectedItem = useSelectedDeviceItem();
@@ -9,7 +10,7 @@ function SetAsDefaultDeviceAction() {
 
     const handleAction = async () => {
         await LocalStorage.setItem(LOCAL_STORAGE.DEFAULT_DEVICE, selectedItem.device_id.toString());
-        await devicesContext?.toggleDefault(selectedItem, true);
+        devicesContext?.toggleDefault(selectedItem, true);
         await showToast(Toast.Style.Success, `Device "${selectedItem.alias}" set as default`);
     };
 

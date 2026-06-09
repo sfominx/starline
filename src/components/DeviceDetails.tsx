@@ -1,18 +1,23 @@
-import React from "react";
 import { Detail } from "@raycast/api";
-import { Item } from "../types/devices";
-import DevicesItemActionPanel from "./DeviceItemPanel";
-import DevicesItemContext from "./context/deviceItem";
+import React from "react";
+
+import type { Item } from "../types/devices";
 
 function boolLabel(value: boolean | undefined) {
-    if (value === undefined) return "—";
+    if (value === undefined) {
+        return "—";
+    }
     return value ? "Yes" : "No";
 }
 
 function formatDate(value: string | undefined) {
-    if (!value) return "—";
+    if (!value) {
+        return "—";
+    }
     const timestamp = Number(value) * 1000;
-    if (Number.isNaN(timestamp)) return value;
+    if (Number.isNaN(timestamp)) {
+        return value;
+    }
     return new Date(timestamp).toLocaleString();
 }
 
@@ -34,7 +39,7 @@ function DeviceDetails(props: DeviceDetailsProps) {
 | Ignition | ${boolLabel(item.car_state.ign)} |
 | Service mode | ${boolLabel(item.car_state.valet)} |
 | Webasto | ${boolLabel(item.car_state.webasto)} |
-| Hands/free | ${item.functions?.includes("hfree") ? "Supported" : "—"} |
+| Hands/free | ${item.functions.includes("hfree") ? "Supported" : "—"} |
 
 ## Sensors
 
@@ -56,17 +61,17 @@ function DeviceDetails(props: DeviceDetailsProps) {
 | Engine temperature | ${item.etemp}°C |
 | Battery | ${item.battery || "—"} |
 | GSM level | ${item.gsm_lvl || "—"} |
-| Balance | ${item.balance?.active?.value || "—"} ${item.balance?.active?.currency || ""} |
+| Balance | ${item.balance.active.value || "—"} ${item.balance.active.currency || ""} |
 | Last activity | ${formatDate(item.ts_activity)} |
 
 ## Position
 
 | Field | Value |
 | --- | --- |
-| Latitude / X | ${item.position?.x || "—"} |
-| Longitude / Y | ${item.position?.y || "—"} |
-| Radius | ${item.position?.r || "—"} |
-| Timestamp | ${formatDate(item.position?.ts)} |
+| Latitude / X | ${item.position.x || "—"} |
+| Longitude / Y | ${item.position.y || "—"} |
+| Radius | ${item.position.r || "—"} |
+| Timestamp | ${formatDate(item.position.ts)} |
 
 ## Device
 
@@ -80,14 +85,7 @@ function DeviceDetails(props: DeviceDetailsProps) {
 | Firmware | ${item.fw_version || "—"} |
 `;
 
-    return (
-        <DevicesItemContext.Provider value={item}>
-            <Detail
-                markdown={markdown}
-                actions={<DevicesItemActionPanel showDetailsAction={false} />}
-            />
-        </DevicesItemContext.Provider>
-    );
+    return <Detail markdown={markdown} />;
 }
 
 export default DeviceDetails;

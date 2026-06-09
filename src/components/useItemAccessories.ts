@@ -1,6 +1,8 @@
-import { Color, Icon, List } from "@raycast/api";
+import { Color, Icon } from "@raycast/api";
+
 // import { useMemo } from "react";
-import { Item } from "../types/devices";
+import type { Item } from "../types/devices";
+import type { List } from "@raycast/api";
 
 type ListItemAccessory = NonNullable<List.Item.Props["accessories"]>[number];
 

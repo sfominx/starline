@@ -4,7 +4,9 @@ class ManuallyThrownError extends Error {}
 export class DisplayableError extends ManuallyThrownError {}
 
 export function getDisplayableErrorMessage(error: unknown) {
-    if (error instanceof DisplayableError) return error.message;
+    if (error instanceof DisplayableError) {
+        return error.message;
+    }
     return undefined;
 }
 

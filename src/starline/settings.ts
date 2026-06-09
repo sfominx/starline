@@ -1,6 +1,7 @@
 import { DEVELOPER_STARLINE } from "./constants";
 import { StarLineDeviceApi } from "./devices";
-import { DeviceSettingsResponse } from "../types/starline";
+
+import type { DeviceSettingsResponse } from "../types/starline";
 
 export class StarLineSettingsApi extends StarLineDeviceApi {
     async putComfortOptions<T = unknown>(deviceId: string, body: unknown) {

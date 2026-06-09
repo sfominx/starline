@@ -10,7 +10,7 @@ declare global {
      * @example
      * Object.keys(obj).map((key: string) => ...)
      */
-        keys<T extends object>(): (keyof T)[];
+        keys<T extends object>(): Array<keyof T>;
     }
 
     interface JSON {

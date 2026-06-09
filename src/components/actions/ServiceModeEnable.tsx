@@ -1,7 +1,8 @@
-import React from "react";
 import { Action, Toast, showToast } from "@raycast/api";
-import { useSelectedDeviceItem } from "../context/deviceItem";
+import React from "react";
+
 import { StarLine } from "../../starline/api";
+import { useSelectedDeviceItem } from "../context/deviceItem";
 
 function ServiceModeEnableAction() {
     const selectedItem = useSelectedDeviceItem();
