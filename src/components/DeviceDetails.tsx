@@ -3,11 +3,20 @@ import React from "react";
 
 import type { Item } from "../types/devices";
 
-function boolLabel(value: boolean | undefined) {
+function statusLabel(value: boolean | undefined, enabledLabel: string, disabledLabel: string) {
     if (value === undefined) {
         return "—";
     }
-    return value ? "Yes" : "No";
+
+    return value ? enabledLabel : disabledLabel;
+}
+
+function openClosedLabel(value: boolean | undefined) {
+    return statusLabel(value, "Открыто", "Закрыто");
+}
+
+function enabledDisabledLabel(value: boolean | undefined) {
+    return statusLabel(value, "Включено", "Выключено");
 }
 
 function displayString(value: string | undefined) {
@@ -37,25 +46,25 @@ function DeviceDetails(props: DeviceDetailsProps) {
 
 | Field | Value |
 | --- | --- |
-| Armed | ${boolLabel(item.car_state.arm)} |
-| Alarm | ${boolLabel(item.car_state.alarm)} |
-| Engine running | ${boolLabel(item.car_state.run)} |
-| Ignition | ${boolLabel(item.car_state.ign)} |
-| Service mode | ${boolLabel(item.car_state.valet)} |
-| Webasto | ${boolLabel(item.car_state.webasto)} |
-| Hands/free | ${item.functions.includes("hfree") ? "Supported" : "—"} |
+| Armed | ${statusLabel(item.car_state.arm, "В охране", "Снято с охраны")} |
+| Alarm | ${statusLabel(item.car_state.alarm, "Тревога", "Нет тревоги")} |
+| Engine | ${statusLabel(item.car_state.run, "Запущен", "Остановлен")} |
+| Ignition | ${enabledDisabledLabel(item.car_state.ign)} |
+| Service mode | ${enabledDisabledLabel(item.car_state.valet)} |
+| Webasto | ${enabledDisabledLabel(item.car_state.webasto)} |
+| Hands/free | ${item.functions.includes("hfree") ? "Поддерживается" : "—"} |
 
 ## Sensors
 
 | Field | Value |
 | --- | --- |
-| Door | ${boolLabel(item.car_state.door)} |
-| Hood | ${boolLabel(item.car_state.hood)} |
-| Trunk | ${boolLabel(item.car_state.trunk)} |
-| Handbrake | ${boolLabel(item.car_state.hbrake)} |
-| Shock bypass | ${boolLabel(item.car_state.shock_bpass)} |
-| Tilt bypass | ${boolLabel(item.car_state.tilt_bpass)} |
-| Additional sensor bypass | ${boolLabel(item.car_state.add_sens_bpass)} |
+| Door | ${openClosedLabel(item.car_state.door)} |
+| Hood | ${openClosedLabel(item.car_state.hood)} |
+| Trunk | ${openClosedLabel(item.car_state.trunk)} |
+| Handbrake | ${statusLabel(item.car_state.hbrake, "Затянут", "Отпущен")} |
+| Shock sensor bypass | ${enabledDisabledLabel(item.car_state.shock_bpass)} |
+| Tilt sensor bypass | ${enabledDisabledLabel(item.car_state.tilt_bpass)} |
+| Additional sensor bypass | ${enabledDisabledLabel(item.car_state.add_sens_bpass)} |
 
 ## Telemetry
 
