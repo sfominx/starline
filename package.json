@@ -36,6 +36,30 @@
             "title": "Stop Engine",
             "description": "Stop engine on the default device",
             "mode": "no-view"
+        },
+        {
+            "name": "arm_quietly",
+            "title": "Arm Quietly",
+            "description": "Arm the default device without sound confirmation",
+            "mode": "no-view"
+        },
+        {
+            "name": "disarm_quietly",
+            "title": "Disarm Quietly",
+            "description": "Disarm the default device without sound confirmation",
+            "mode": "no-view"
+        },
+        {
+            "name": "horn",
+            "title": "Horn",
+            "description": "Send horn command to the default device",
+            "mode": "no-view"
+        },
+        {
+            "name": "update_position",
+            "title": "Update Position",
+            "description": "Request position update for the default device",
+            "mode": "no-view"
         }
     ],
     "preferences": [
