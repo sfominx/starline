@@ -1,22 +1,8 @@
-import { LocalStorage, showToast, Toast } from "@raycast/api";
-import { LOCAL_STORAGE } from "./starline/constants";
-import StarLine from "./starline/api";
+import defaultDeviceCommand from "./utils/defaultDeviceCommand";
 
-async function armCommand() {
-    const defaultDevice = await LocalStorage.getItem(LOCAL_STORAGE.DEFAULT_DEVICE);
-
-    if (defaultDevice === undefined) {
-        await showToast(
-            Toast.Style.Failure,
-            "No default device",
-            "Please set default device first",
-        );
-        return;
-    }
-
-    const starline = new StarLine();
-    await starline.arm(defaultDevice.toString());
-    await showToast(Toast.Style.Success, "Armed");
+export default async function armCommand() {
+    await defaultDeviceCommand({
+        successMessage: "Armed",
+        run: (starline, deviceId) => starline.arm(deviceId),
+    });
 }
-
-export default armCommand;
