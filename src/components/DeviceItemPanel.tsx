@@ -1,5 +1,5 @@
 import React from "react";
-import { Action, ActionPanel, Icon, environment } from "@raycast/api";
+import { Action, ActionPanel, Alert, Icon, environment } from "@raycast/api";
 
 import StartEngineAction from "./actions/StartEngine";
 import { useSelectedDeviceItem } from "./context/deviceItem";
@@ -16,13 +16,21 @@ import ServiceModeDisableAction from "./actions/ServiceModeDisable";
 import SetAsDefaultDeviceAction from "./actions/SetAsDefaultDevice";
 import UnsetAsDefaultDeviceAction from "./actions/UnsetAsDefaultDevice";
 import CommandAction from "./actions/Command";
+import DeviceDetails from "./DeviceDetails";
 
-function DevicesItemActionPanel() {
-    const { device_id: deviceId, default: isDefault } = useSelectedDeviceItem();
+function DevicesItemActionPanel({ showDetailsAction = true }: { showDetailsAction?: boolean }) {
+    const selectedItem = useSelectedDeviceItem();
+    const { device_id: deviceId, default: isDefault } = selectedItem;
 
     return (
         <ActionPanel>
             <ActionPanel.Section>
+                {showDetailsAction && (
+                    <Action.Push
+                        title="Show Details"
+                        target={<DeviceDetails item={selectedItem} />}
+                    />
+                )}
                 <ArmAction />
                 <StartEngineAction />
                 <DisarmAction />
@@ -69,8 +77,24 @@ function DevicesItemActionPanel() {
                     command="disarm_trunk"
                     icon={Icon.LockUnlocked}
                     successMessage="Trunk disarmed"
+                    confirmation={{
+                        title: "Disarm trunk?",
+                        message: "This will disable trunk security for the selected device.",
+                        primaryActionTitle: "Disarm Trunk",
+                        style: Alert.ActionStyle.Destructive,
+                    }}
                 />
-                <CommandAction title="Panic" command="panic" icon={Icon.ExclamationMark} />
+                <CommandAction
+                    title="Panic"
+                    command="panic"
+                    icon={Icon.ExclamationMark}
+                    confirmation={{
+                        title: "Trigger panic mode?",
+                        message: "This will enable alarm mode for 15 seconds.",
+                        primaryActionTitle: "Trigger Panic",
+                        style: Alert.ActionStyle.Destructive,
+                    }}
+                />
                 <CommandAction
                     title="Get SIM 1 Balance"
                     command="getbalance"
