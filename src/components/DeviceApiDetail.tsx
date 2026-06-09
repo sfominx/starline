@@ -15,7 +15,11 @@ type DeviceApiDetailKind =
     | "data"
     | "report"
     | "settings"
-    | "comfortOptions";
+    | "comfortOptions"
+    | "events"
+    | "ways"
+    | "drivingScore"
+    | "drivingScoreHistory";
 
 type DeviceApiDetailProps = {
     item: Item;
@@ -25,6 +29,13 @@ type DeviceApiDetailProps = {
 
 function formatJson(value: unknown) {
     return `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``;
+}
+
+function lastHoursPeriod(hours: number) {
+    const periodEnd = Math.floor(Date.now() / 1000);
+    const periodStart = periodEnd - hours * 60 * 60;
+
+    return { periodStart, periodEnd };
 }
 
 function DeviceApiDetail(props: DeviceApiDetailProps) {
@@ -39,6 +50,7 @@ function DeviceApiDetail(props: DeviceApiDetailProps) {
                 setIsLoading(true);
                 const deviceId = item.device_id.toString();
                 let data: unknown;
+                const { periodStart, periodEnd } = lastHoursPeriod(24);
 
                 switch (kind) {
                     case "controls":
@@ -70,6 +82,25 @@ function DeviceApiDetail(props: DeviceApiDetailProps) {
                         break;
                     case "comfortOptions":
                         data = await starline.getSupportedComfortOptions(deviceId);
+                        break;
+                    case "events":
+                        data = await starline.getEvents(deviceId, {
+                            period_start: periodStart,
+                            period_end: periodEnd,
+                        });
+                        break;
+                    case "ways":
+                        data = await starline.getWays(deviceId, {
+                            begin: periodStart,
+                            end: periodEnd,
+                            split_way: false,
+                        });
+                        break;
+                    case "drivingScore":
+                        data = await starline.getDrivingScore(deviceId, {});
+                        break;
+                    case "drivingScoreHistory":
+                        data = await starline.getDrivingScoreHistory(deviceId, {});
                         break;
                     default:
                         data = null;

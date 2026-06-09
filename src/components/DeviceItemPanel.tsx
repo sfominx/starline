@@ -18,6 +18,7 @@ import UnsetAsDefaultDeviceAction from "./actions/UnsetAsDefaultDevice";
 import CommandAction from "./actions/Command";
 import DeviceApiDetail from "./DeviceApiDetail";
 import DeviceDetails from "./DeviceDetails";
+import DeviceJsonMutationForm from "./DeviceJsonMutationForm";
 
 function DevicesItemActionPanel({ showDetailsAction = true }: { showDetailsAction?: boolean }) {
     const selectedItem = useSelectedDeviceItem();
@@ -134,6 +135,46 @@ function DevicesItemActionPanel({ showDetailsAction = true }: { showDetailsActio
                     }
                 />
                 <Action.Push
+                    title="Show Events"
+                    icon={Icon.Clock}
+                    target={
+                        <DeviceApiDetail
+                            item={selectedItem}
+                            kind="events"
+                            title="Events / Last 24h"
+                        />
+                    }
+                />
+                <Action.Push
+                    title="Show Track"
+                    icon={Icon.Map}
+                    target={
+                        <DeviceApiDetail item={selectedItem} kind="ways" title="Track / Last 24h" />
+                    }
+                />
+                <Action.Push
+                    title="Show Driving Score"
+                    icon={Icon.BarChart}
+                    target={
+                        <DeviceApiDetail
+                            item={selectedItem}
+                            kind="drivingScore"
+                            title="Driving Score"
+                        />
+                    }
+                />
+                <Action.Push
+                    title="Show Driving Score History"
+                    icon={Icon.BarChart}
+                    target={
+                        <DeviceApiDetail
+                            item={selectedItem}
+                            kind="drivingScoreHistory"
+                            title="Driving Score History"
+                        />
+                    }
+                />
+                <Action.Push
                     title="Show OBD Params"
                     icon={Icon.Gauge}
                     target={
@@ -145,6 +186,87 @@ function DevicesItemActionPanel({ showDetailsAction = true }: { showDetailsActio
                     icon={Icon.ExclamationMark}
                     target={
                         <DeviceApiDetail item={selectedItem} kind="obdErrors" title="OBD Errors" />
+                    }
+                />
+            </ActionPanel.Section>
+
+            <ActionPanel.Section title="Settings / Advanced JSON Forms">
+                <Action.Push
+                    title="Update Device Info"
+                    icon={Icon.Pencil}
+                    target={
+                        <DeviceJsonMutationForm
+                            item={selectedItem}
+                            kind="deviceInfo"
+                            title="Update Device Info"
+                            defaultBody={{ alias: selectedItem.alias, phone: selectedItem.phone }}
+                        />
+                    }
+                />
+                <Action.Push
+                    title="Update Controls"
+                    icon={Icon.List}
+                    target={
+                        <DeviceJsonMutationForm
+                            item={selectedItem}
+                            kind="controls"
+                            title="Update Controls"
+                        />
+                    }
+                />
+                <Action.Push
+                    title="Put Comfort Options"
+                    icon={Icon.Window}
+                    target={
+                        <DeviceJsonMutationForm
+                            item={selectedItem}
+                            kind="comfortOptions"
+                            title="Put Comfort Options"
+                        />
+                    }
+                />
+                <Action.Push
+                    title="Update Webasto Settings"
+                    icon={Icon.Gear}
+                    target={
+                        <DeviceJsonMutationForm
+                            item={selectedItem}
+                            kind="webastoSettings"
+                            title="Update Webasto Settings"
+                        />
+                    }
+                />
+                <Action.Push
+                    title="Update Remote Start Settings"
+                    icon={Icon.Gear}
+                    target={
+                        <DeviceJsonMutationForm
+                            item={selectedItem}
+                            kind="remoteStartSettings"
+                            title="Update Remote Start Settings"
+                        />
+                    }
+                />
+                <Action.Push
+                    title="Update Shock Sensor Settings"
+                    icon={Icon.Gear}
+                    target={
+                        <DeviceJsonMutationForm
+                            item={selectedItem}
+                            kind="shockSensorSettings"
+                            title="Update Shock Sensor Settings"
+                        />
+                    }
+                />
+                <Action.Push
+                    title="Update Monitoring Settings"
+                    icon={Icon.Gear}
+                    target={
+                        <DeviceJsonMutationForm
+                            item={selectedItem}
+                            kind="monitoringSettings"
+                            title="Update Monitoring Settings"
+                        />
                     }
                 />
             </ActionPanel.Section>
