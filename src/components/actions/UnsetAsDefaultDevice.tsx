@@ -1,4 +1,3 @@
-import React from "react";
 import { Action, Icon, LocalStorage, Toast, showToast } from "@raycast/api";
 import { useSelectedDeviceItem } from "../context/deviceItem";
 import { LOCAL_STORAGE } from "../../starline/constants";

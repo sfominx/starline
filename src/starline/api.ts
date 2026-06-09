@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 import { createHash } from "crypto";
 import { DEVELOPER_STARLINE, ID_STARLINE, LOCAL_STORAGE } from "./constants";
 import { CaptchaNeededError, DisplayableError } from "../utils/errors";
-import { Devices } from "../types/devices";
+import { CarStatus, Devices } from "../types/devices";
 import { getItem, setItemWithLifetime } from "../utils/localStorage";
 
 function deviceSetParamUrl(deviceId: string) {
@@ -273,24 +273,24 @@ export class StarLine {
         console.log(data);
     }
 
-    async arm(deviceId: string) {
+    async arm(deviceId: string): Promise<CarStatus> {
         /**
          * Arm device
          */
         const body = { type: "arm_start", arm_start: 1 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
+        const data = (await this.apiCall(deviceSetParamUrl(deviceId), body)) as CarStatus;
 
-        console.log(data);
+        return data;
     }
 
-    async disarm(deviceId: string) {
+    async disarm(deviceId: string): Promise<CarStatus> {
         /**
          * Disarm device
          */
         const body = { type: "arm_stop", arm_stop: 1 };
-        const data = await this.apiCall(deviceSetParamUrl(deviceId), body);
+        const data = (await this.apiCall(deviceSetParamUrl(deviceId), body)) as CarStatus;
 
-        console.log(data);
+        return data;
     }
 
     async armQuietly(deviceId: string) {

@@ -1,4 +1,4 @@
-import React, { ReactNode, createContext, useContext, useMemo, useReducer } from "react";
+import React, { ReactNode, createContext, useContext, useReducer } from "react";
 import { LocalStorage, Toast, showToast } from "@raycast/api";
 import { Devices, Item } from "../types/devices";
 import useOnceEffect from "../utils/hooks/useOnceEffect";
@@ -57,7 +57,7 @@ export function DevicesProvider(props: DevicesProviderProps) {
                 const [itemsResult] = await Promise.all([starline.getDevices()]);
                 if (itemsResult.error) throw itemsResult.error;
                 if (itemsResult.result) {
-                    console.log(JSON.stringify(itemsResult.result.devices[0].controls, null, "  "));
+                    // console.log(JSON.stringify(itemsResult.result.devices[0].controls, null, "  "));
                     devices = itemsResult.result.devices;
                 }
             } catch (error) {
@@ -73,7 +73,6 @@ export function DevicesProvider(props: DevicesProviderProps) {
                 publishItems(new FailedToLoadDevicesItemsError());
                 throw error;
             }
-
             setState({ devices });
             publishItems(devices);
         } catch (error) {
@@ -87,21 +86,19 @@ export function DevicesProvider(props: DevicesProviderProps) {
         }
     }
 
-    const toggleDefault = async (item: Item, isDefault: boolean) => {
+    async function toggleDefault(item: Item, isDefault: boolean) {
         const newDevices: Item[] = [];
 
         state.devices.forEach((element) => {
             if (element.device_id === item.device_id) {
                 newDevices.push({ ...element, default: isDefault });
-                console.log("Default: " + isDefault);
             } else {
                 newDevices.push(element);
             }
         });
-
-        setState({ devices: newDevices });
-        publishItems(state.devices);
-    };
+        setState({ ...state, devices: newDevices });
+        publishItems(newDevices);
+    }
 
     function updateState(next: React.SetStateAction<DevicesState>) {
         const newState = typeof next === "function" ? next(state) : next;
@@ -112,20 +109,21 @@ export function DevicesProvider(props: DevicesProviderProps) {
         void loadItems();
     }, true);
 
-    const memoizedValue: DevicesContextType = useMemo(
-        () => ({
-            ...state,
-            devices: state.devices,
-            isEmpty: state.devices.length === 0,
-            isLoading: state.isLoading,
-            loadItems,
-            updateState,
-            toggleDefault,
-        }),
-        [state, loadItems, updateState, toggleDefault],
+    return (
+        <DevicesContext.Provider
+            value={{
+                ...state,
+                devices: state.devices,
+                isEmpty: state.devices.length === 0,
+                isLoading: state.isLoading,
+                loadItems,
+                updateState,
+                toggleDefault,
+            }}
+        >
+            {children}
+        </DevicesContext.Provider>
     );
-
-    return <DevicesContext.Provider value={memoizedValue}>{children}</DevicesContext.Provider>;
 }
 
 export const useDevicesContext = () => {

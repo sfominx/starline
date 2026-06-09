@@ -1,5 +1,4 @@
-import React from "react";
-import { Action, ActionPanel, Form, Icon, List } from "@raycast/api";
+import { Action, ActionPanel, Form, List } from "@raycast/api";
 import { DevicesProvider, useDevicesContext } from "./context/devices";
 import { Item } from "./types/devices";
 import DevicesItem from "./components/Item";
@@ -10,11 +9,7 @@ function DevicesItemList({ devices }: { devices: Item[] }) {
     return (
         <>
             {devices.map((device) => (
-                <DevicesItem
-                    key={device.device_id}
-                    item={device}
-                    icon={device.car_state.arm ? Icon.Lock : Icon.LockUnlocked}
-                />
+                <DevicesItem key={device.device_id} item={device} />
             ))}
         </>
     );
@@ -55,6 +50,7 @@ function DeviceComponent() {
             </Form>
         );
     }
+
     return (
         <List searchBarPlaceholder="Search device" isLoading={isLoading}>
             <DevicesItemList devices={devices} />

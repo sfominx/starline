@@ -1,13 +1,16 @@
 export interface Item {
     object: "item";
+    default: boolean;
+
+    // API response
     device_id: number;
     alias: string;
     imei: string;
     sn: string;
     phone: string;
     battery: string;
-    ctemp: string;
-    etemp: string;
+    ctemp: number;
+    etemp: number;
     fw_version: string;
     gsm_lvl: string;
     mon_type: string;
@@ -64,17 +67,36 @@ export interface Item {
     };
     functions: [string];
     controls: [{ position: number; type: string }];
-
-    default: boolean;
 }
 
 export interface Devices {
     devices: Item[];
-    shared_devices: [];
-    code: number;
-    codestring: string;
+    shared_devices?: [];
+    code?: number;
+    codestring?: string;
 }
 
-// export type Devices = {
-//     items: Item[];
-// };
+export interface CarStatus {
+    add_sens_bpass: string;
+    alarm: string;
+    arm: string;
+    code: number;
+    codestring: string;
+    door: string;
+    hbrake: string;
+    hijack: string;
+    hood: string;
+    ign: string;
+    out: string;
+    pbrake: string;
+    poke: string;
+    r_start: string;
+    reply_code: string | null;
+    run: string;
+    shock_bpass: string;
+    tilt_bpass: string;
+    trunk: string;
+    type: string;
+    valet: string;
+    webasto: string;
+}

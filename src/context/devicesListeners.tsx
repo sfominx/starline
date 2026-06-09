@@ -1,11 +1,4 @@
-import React, {
-    createContext,
-    MutableRefObject,
-    ReactNode,
-    useContext,
-    useMemo,
-    useRef,
-} from "react";
+import React, { createContext, MutableRefObject, ReactNode, useContext, useRef } from "react";
 import { Item } from "../types/devices";
 import { FailedToLoadDevicesItemsError } from "../utils/errors";
 
@@ -28,7 +21,9 @@ function DevicesListenersProvider({ children }: { children: ReactNode }) {
         } else {
             listeners.current.forEach((listener, itemId) => {
                 const item = itemsOrError.find((itm) => itm.device_id.toString() === itemId);
-                if (item) listener(item);
+                if (item) {
+                    listener(item);
+                }
             });
         }
     };
@@ -40,10 +35,10 @@ function DevicesListenersProvider({ children }: { children: ReactNode }) {
         };
     };
 
-    const memoizedValue = useMemo(() => ({ listeners, publishItems, subscribeItem }), []);
+    // const memoizedValue = useMemo(() => ({ listeners, publishItems, subscribeItem }), []);
 
     return (
-        <DevicesListenersContext.Provider value={memoizedValue}>
+        <DevicesListenersContext.Provider value={{ listeners, publishItems, subscribeItem }}>
             {children}
         </DevicesListenersContext.Provider>
     );
@@ -59,10 +54,10 @@ export const useDevicesItemPublisher = () => {
 };
 
 /** Allows you to subscribe to a specific item and get notified when it changes. */
-export const useVaultItemSubscriber = () => {
+export const useDevicesItemSubscriber = () => {
     const context = useContext(DevicesListenersContext);
     if (context == null)
-        throw new Error("useVaultItemSubscriber must be used within a VaultListenersProvider");
+        throw new Error("useDevicesItemSubscriber must be used within a DevicesListenersProvider");
 
     return (itemId: string) => {
         let timeoutId: NodeJS.Timeout;
