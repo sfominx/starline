@@ -6,9 +6,7 @@ type ClearAuthCacheActionProps = {
     onCleared?: () => Promise<void> | void;
 };
 
-function ClearAuthCacheAction(props: ClearAuthCacheActionProps) {
-    const { onCleared } = props;
-
+function ClearAuthCacheAction({ onCleared }: ClearAuthCacheActionProps) {
     const handleAction = async () => {
         const confirmed = await confirmAlert({
             title: "Clear StarLine Auth Cache?",

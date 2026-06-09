@@ -1,23 +1,19 @@
-import { Action, Alert, Toast, confirmAlert, showToast } from "@raycast/api";
+import { Action, Alert, confirmAlert } from "@raycast/api";
+import { useMemo } from "react";
 
 import { useOptionalDevicesContext } from "../../context/devices";
+import { useOptionalStarLine } from "../../context/starline";
 import { StarLine } from "../../starline/api";
 import { DEVICE_ACTIONS } from "../../starline/commandConfig";
+import { runDeviceCommand } from "../../utils/runDeviceCommand";
 import { useSelectedDeviceItem } from "../context/deviceItem";
 
 import type { DeviceActionKey, DeviceCommandConfig } from "../../starline/commandConfig";
 import type { CarStatus, Item } from "../../types/devices";
 
-function errorMessage(error: unknown) {
-    return error instanceof Error ? error.message : "Unknown error";
-}
-
-function isConfirmed(confirmation: DeviceCommandConfig["confirmation"], fallbackTitle: string) {
-    if (confirmation === undefined) {
-        return true;
-    }
-
-    return confirmAlert({
+const isConfirmed = (confirmation: DeviceCommandConfig["confirmation"], fallbackTitle: string) =>
+    confirmation === undefined ||
+    confirmAlert({
         title: confirmation.title,
         message: confirmation.message,
         primaryAction: {
@@ -25,62 +21,48 @@ function isConfirmed(confirmation: DeviceCommandConfig["confirmation"], fallback
             style: confirmation.style ?? Alert.ActionStyle.Default,
         },
     });
-}
 
-function useArmStateUpdater(selectedItem: Item, enabled: boolean | undefined) {
-    const devicesContext = useOptionalDevicesContext();
-
-    if (enabled !== true) {
-        return undefined;
-    }
-
-    return (result: unknown) => {
-        if (devicesContext === null) {
-            return;
-        }
-
-        const status = result as CarStatus;
-        const devices = devicesContext.devices.map((device) =>
-            device.device_id === selectedItem.device_id
-                ? { ...device, car_state: { ...device.car_state, arm: status.arm === "1" } }
-                : device,
-        );
-
-        devicesContext.updateState({ devices, isLoading: false, captchaNeeded: false });
-    };
-}
+const updateArmState = (target: Item, result: unknown) => {
+    const isArmed = (result as CarStatus).arm === "1";
+    return (device: Item) =>
+        device.device_id === target.device_id
+            ? { ...device, car_state: { ...device.car_state, arm: isArmed } }
+            : device;
+};
 
 function DeviceCommandAction(config: DeviceCommandConfig) {
+    const { title, icon, shortcut, confirmation, run, successMessage, updatesArmState } = config;
     const item = useSelectedDeviceItem();
-    const updateArmState = useArmStateUpdater(item, config.updatesArmState);
+    const devicesContext = useOptionalDevicesContext();
+    const contextStarLine = useOptionalStarLine();
+    const fallbackStarLine = useMemo(() => new StarLine(), []);
+    const starline = contextStarLine ?? fallbackStarLine;
 
     const handleAction = async () => {
-        if (!(await isConfirmed(config.confirmation, config.title))) {
+        if (!(await isConfirmed(confirmation, title))) {
             return;
         }
 
-        const toast = await showToast(Toast.Style.Animated, config.title);
+        const result = await runDeviceCommand({
+            deviceId: item.device_id.toString(),
+            item,
+            run,
+            starline,
+            successMessage,
+            title,
+        });
 
-        try {
-            const result = await config.run(new StarLine(), item.device_id.toString(), item);
-            updateArmState?.(result);
-            toast.style = Toast.Style.Success;
-            toast.title = config.successMessage;
-        } catch (error) {
-            toast.style = Toast.Style.Failure;
-            toast.title = `${config.title} failed`;
-            toast.message = errorMessage(error);
+        if (updatesArmState !== true || devicesContext === null || result === undefined) {
+            return;
         }
+
+        devicesContext.updateState(({ devices }) => ({
+            devices: devices.map(updateArmState(item, result)),
+            isLoading: false,
+        }));
     };
 
-    return (
-        <Action
-            title={config.title}
-            icon={config.icon}
-            shortcut={config.shortcut}
-            onAction={handleAction}
-        />
-    );
+    return <Action title={title} icon={icon} shortcut={shortcut} onAction={handleAction} />;
 }
 
 export function ConfiguredDeviceCommandAction({ command }: { command: DeviceActionKey }) {

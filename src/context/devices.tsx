@@ -1,112 +1,94 @@
 import { Toast, showToast } from "@raycast/api";
-import { createContext, useContext, useReducer } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer } from "react";
 
-import {
-    CaptchaNeededError,
-    FailedToLoadDevicesItemsError,
-    getDisplayableErrorMessage,
-} from "../utils/errors";
-import useOnceEffect from "../utils/hooks/useOnceEffect";
+import { CaptchaNeededError, getDisplayableErrorMessage } from "../utils/errors";
 
 import { useStarLine } from "./starline";
 
 import type { Devices, Item } from "../types/devices";
-import type { ReactNode, SetStateAction } from "react";
+import type { ReactNode } from "react";
 
 type DevicesState = Devices & {
     isLoading: boolean;
-    captchaNeeded: boolean;
     captchaSid?: string;
     captchaImg?: string;
 };
 
+type DevicesStatePatch = Partial<DevicesState>;
+type DevicesStateUpdate = DevicesStatePatch | ((state: DevicesState) => DevicesStatePatch);
+
 type DevicesContextType = DevicesState & {
-    isEmpty: boolean;
     loadItems: () => Promise<void>;
-    updateState: (next: SetStateAction<DevicesState>) => void;
-    toggleDefault: (item: Item, isDefault: boolean) => void;
+    updateState: (next: DevicesStateUpdate) => void;
+    setDefaultDevice: (item: Item, enabled: boolean) => void;
 };
 
-function getInitialState(): DevicesState {
-    return {
-        devices: [],
-        isLoading: true,
-        captchaNeeded: false,
-        shared_devices: [],
-        code: 200,
-        codestring: "",
-    };
-}
+const INITIAL_STATE: DevicesState = {
+    devices: [],
+    isLoading: true,
+    shared_devices: [],
+    code: 200,
+    codestring: "",
+};
 
 const DevicesContext = createContext<DevicesContextType | null>(null);
 
 export function DevicesProvider({ children }: { children: ReactNode }) {
     const starline = useStarLine();
     const [state, setState] = useReducer(
-        (previous: DevicesState, next: Partial<DevicesState>) => ({ ...previous, ...next }),
-        getInitialState(),
+        (previous: DevicesState, next: DevicesStateUpdate) => ({
+            ...previous,
+            ...(typeof next === "function" ? next(previous) : next),
+        }),
+        INITIAL_STATE,
     );
 
-    async function loadItems() {
+    const loadItems = useCallback(async () => {
         setState({ isLoading: true });
 
         try {
-            const { result, error } = await starline.getDevices();
-
-            if (error !== undefined) {
-                throw new FailedToLoadDevicesItemsError(error);
-            }
-
-            setState({ devices: result?.devices ?? [], captchaNeeded: false });
+            const { result } = await starline.getDevices();
+            setState({ ...result, captchaImg: undefined, captchaSid: undefined });
         } catch (error) {
             if (error instanceof CaptchaNeededError) {
-                setState({
-                    captchaNeeded: true,
-                    captchaImg: error.captchaImg,
-                    captchaSid: error.captchaSid,
-                });
+                setState({ captchaImg: error.captchaImg, captchaSid: error.captchaSid });
                 return;
             }
 
             await showToast(
                 Toast.Style.Failure,
-                "Failed to load devices items",
+                "Failed to load devices",
                 getDisplayableErrorMessage(error),
             );
         } finally {
             setState({ isLoading: false });
         }
-    }
+    }, [starline]);
 
-    function toggleDefault(item: Item, isDefault: boolean) {
-        setState({
-            devices: state.devices.map((device) =>
-                device.device_id === item.device_id ? { ...device, default: isDefault } : device,
-            ),
-        });
-    }
+    const setDefaultDevice = useCallback((item: Item, enabled: boolean) => {
+        setState(({ devices }) => ({
+            devices: devices.map((device) => ({
+                ...device,
+                default: enabled && device.device_id === item.device_id,
+            })),
+        }));
+    }, []);
 
-    function updateState(next: SetStateAction<DevicesState>) {
-        setState(typeof next === "function" ? next(state) : next);
-    }
-
-    useOnceEffect(() => {
+    useEffect(() => {
         void loadItems();
-    }, true);
+    }, [loadItems]);
 
-    return (
-        <DevicesContext.Provider
-            value={{
-                ...state,
-                isEmpty: state.devices.length === 0,
-                loadItems,
-                updateState,
-                toggleDefault,
-            }}
-        >
-            {children}
-        </DevicesContext.Provider>
+    const value = useMemo(
+        () => ({
+            ...state,
+            loadItems,
+            updateState: setState,
+            setDefaultDevice,
+        }),
+        [loadItems, setDefaultDevice, state],
     );
+
+    return <DevicesContext.Provider value={value}>{children}</DevicesContext.Provider>;
 }
 
 export const useOptionalDevicesContext = () => useContext(DevicesContext);

@@ -1,33 +1,31 @@
-import { type Alert, Icon } from "@raycast/api";
+import { Icon } from "@raycast/api";
 
 import { useSelectedDeviceItem } from "../context/deviceItem";
 
 import DeviceCommandAction from "./DeviceCommand";
 
+import type { DeviceCommandConfig, DeviceCommandValue } from "../../starline/commandConfig";
 import type { Item } from "../../types/devices";
 
 type CommandActionProps = {
     title: string;
     command: string;
-    value?: string | number | boolean;
+    value?: DeviceCommandValue;
     icon?: Icon;
     successMessage?: string;
-    confirmation?: {
-        title: string;
-        message?: string;
-        primaryActionTitle?: string;
-        style?: Alert.ActionStyle;
-    };
+    confirmation?: DeviceCommandConfig["confirmation"];
     requireSupported?: boolean;
 };
 
 function isCommandSupported(command: string, item: Item) {
-    const supportedCommands = new Set([
-        ...item.functions,
-        ...item.controls.map((control) => control.type),
-    ]);
+    const functions = item.functions ?? [];
+    const controls = item.controls ?? [];
 
-    return supportedCommands.size === 0 || supportedCommands.has(command);
+    if (functions.length === 0 && controls.length === 0) {
+        return true;
+    }
+
+    return functions.includes(command) || controls.some(({ type }) => type === command);
 }
 
 function CommandAction(props: CommandActionProps) {

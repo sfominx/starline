@@ -3,6 +3,8 @@ import { Alert, Icon, type Image, type Keyboard } from "@raycast/api";
 import type { StarLine } from "./api";
 import type { Item } from "../types/devices";
 
+export type DeviceCommandValue = string | number | boolean;
+
 type CommandConfirmation = {
     title: string;
     message?: string;
@@ -20,119 +22,134 @@ export type DeviceCommandConfig = {
     run: (starline: StarLine, deviceId: string, item?: Item) => Promise<unknown>;
 };
 
-type DeviceActionsMap = Record<string, DeviceCommandConfig>;
-
-function defineDeviceActions<const T extends DeviceActionsMap>(actions: T) {
-    return actions;
-}
-
-export const DEVICE_ACTIONS = defineDeviceActions({
-    arm: {
-        title: "Arm",
-        icon: Icon.Lock,
-        successMessage: "Armed",
-        updatesArmState: true,
-        run: (starline, deviceId) => starline.arm(deviceId),
-    },
-    startEngine: {
-        title: "Start Engine",
-        icon: Icon.Play,
-        shortcut: { modifiers: ["cmd"], key: "return" },
-        successMessage: "Engine started",
-        confirmation: {
-            title: "Start engine?",
-            message: "Make sure it is safe to start the engine remotely.",
-            primaryActionTitle: "Start Engine",
-        },
-        run: (starline, deviceId) => starline.startEngine(deviceId),
-    },
-    disarm: {
-        title: "Disarm",
-        icon: Icon.LockUnlocked,
-        shortcut: { modifiers: ["cmd"], key: "d" },
-        successMessage: "Disarmed",
-        confirmation: {
-            title: "Disarm vehicle?",
-            message: "This will disable security mode for the selected device.",
-            primaryActionTitle: "Disarm",
-            style: Alert.ActionStyle.Destructive,
-        },
-        updatesArmState: true,
-        run: (starline, deviceId) => starline.disarm(deviceId),
-    },
-    stopEngine: {
-        title: "Stop Engine",
-        icon: Icon.Stop,
-        shortcut: { modifiers: ["cmd"], key: "s" },
-        successMessage: "Engine stopped",
-        confirmation: {
-            title: "Stop engine?",
-            message: "This will stop the engine remotely.",
-            primaryActionTitle: "Stop Engine",
-            style: Alert.ActionStyle.Destructive,
-        },
-        run: (starline, deviceId) => starline.stopEngine(deviceId),
-    },
-    armQuietly: {
-        title: "Arm Quietly",
-        icon: Icon.Lock,
-        successMessage: "Armed quietly",
-        updatesArmState: true,
-        run: (starline, deviceId) => starline.armQuietly(deviceId),
-    },
-    disarmQuietly: {
-        title: "Disarm Quietly",
-        icon: Icon.LockUnlocked,
-        successMessage: "Disarmed quietly",
-        confirmation: {
-            title: "Disarm quietly?",
-            message: "This will disable security mode without sound confirmation.",
-            primaryActionTitle: "Disarm Quietly",
-            style: Alert.ActionStyle.Destructive,
-        },
-        updatesArmState: true,
-        run: (starline, deviceId) => starline.disarmQuietly(deviceId),
-    },
-    shockSensorBypass: {
-        title: "Shock Sensor Bypass",
-        icon: Icon.BoltDisabled,
-        successMessage: "Shock sensor bypassed",
-        run: (starline, deviceId) => starline.shockSensorBypass(deviceId),
-    },
-    tiltSensorBypass: {
-        title: "Tilt Sensor Bypass",
-        icon: Icon.ClearFormatting,
-        successMessage: "Tilt sensor bypassed",
-        run: (starline, deviceId) => starline.tiltSensorBypass(deviceId),
-    },
-    additionalSensorBypass: {
-        title: "Additional Sensor Bypass",
-        icon: Icon.LivestreamDisabled,
-        successMessage: "Additional sensor bypassed",
-        run: (starline, deviceId) => starline.additionalSensorBypass(deviceId),
-    },
-    serviceModeEnable: {
-        title: "Enable Service Mode",
-        successMessage: "Service mode enabled",
-        run: (starline, deviceId) => starline.serviceModeEnable(deviceId),
-    },
-    serviceModeDisable: {
-        title: "Disable Service Mode",
-        successMessage: "Service mode disabled",
-        run: (starline, deviceId) => starline.serviceModeDisable(deviceId),
-    },
-    horn: {
-        title: "Horn",
-        icon: Icon.SpeakerUp,
-        successMessage: "Horn command sent",
-        run: (starline, deviceId) => starline.horn(deviceId),
-    },
-    updatePosition: {
-        title: "Update Position",
-        icon: Icon.Map,
-        successMessage: "Position update requested",
-        run: (starline, deviceId) => starline.updatePosition(deviceId),
-    },
+const destructiveConfirmation = (
+    title: string,
+    message: string,
+    primaryActionTitle: string,
+): CommandConfirmation => ({
+    title,
+    message,
+    primaryActionTitle,
+    style: Alert.ActionStyle.Destructive,
 });
 
+const deviceCommand = (
+    title: string,
+    successMessage: string,
+    run: DeviceCommandConfig["run"],
+    options: Omit<DeviceCommandConfig, "title" | "successMessage" | "run"> = {},
+): DeviceCommandConfig => ({ title, successMessage, run, ...options });
+
+export const DEVICE_ACTIONS = {
+    arm: deviceCommand("Arm", "Armed", (starline, deviceId) => starline.arm(deviceId), {
+        icon: Icon.Lock,
+        updatesArmState: true,
+    }),
+    startEngine: deviceCommand(
+        "Start Engine",
+        "Engine started",
+        (starline, deviceId) => starline.startEngine(deviceId),
+        {
+            icon: Icon.Play,
+            shortcut: { modifiers: ["cmd"], key: "return" },
+            confirmation: {
+                title: "Start engine?",
+                message: "Make sure it is safe to start the engine remotely.",
+                primaryActionTitle: "Start Engine",
+            },
+        },
+    ),
+    disarm: deviceCommand("Disarm", "Disarmed", (starline, deviceId) => starline.disarm(deviceId), {
+        icon: Icon.LockUnlocked,
+        shortcut: { modifiers: ["cmd"], key: "d" },
+        confirmation: destructiveConfirmation(
+            "Disarm vehicle?",
+            "This will disable security mode for the selected device.",
+            "Disarm",
+        ),
+        updatesArmState: true,
+    }),
+    stopEngine: deviceCommand(
+        "Stop Engine",
+        "Engine stopped",
+        (starline, deviceId) => starline.stopEngine(deviceId),
+        {
+            icon: Icon.Stop,
+            shortcut: { modifiers: ["cmd"], key: "s" },
+            confirmation: destructiveConfirmation(
+                "Stop engine?",
+                "This will stop the engine remotely.",
+                "Stop Engine",
+            ),
+        },
+    ),
+    armQuietly: deviceCommand(
+        "Arm Quietly",
+        "Armed quietly",
+        (starline, deviceId) => starline.armQuietly(deviceId),
+        {
+            icon: Icon.Lock,
+            updatesArmState: true,
+        },
+    ),
+    disarmQuietly: deviceCommand(
+        "Disarm Quietly",
+        "Disarmed quietly",
+        (starline, deviceId) => starline.disarmQuietly(deviceId),
+        {
+            icon: Icon.LockUnlocked,
+            confirmation: destructiveConfirmation(
+                "Disarm quietly?",
+                "This will disable security mode without sound confirmation.",
+                "Disarm Quietly",
+            ),
+            updatesArmState: true,
+        },
+    ),
+    shockSensorBypass: deviceCommand(
+        "Shock Sensor Bypass",
+        "Shock sensor bypassed",
+        (starline, deviceId) => starline.shockSensorBypass(deviceId),
+        { icon: Icon.BoltDisabled },
+    ),
+    tiltSensorBypass: deviceCommand(
+        "Tilt Sensor Bypass",
+        "Tilt sensor bypassed",
+        (starline, deviceId) => starline.tiltSensorBypass(deviceId),
+        { icon: Icon.ClearFormatting },
+    ),
+    additionalSensorBypass: deviceCommand(
+        "Additional Sensor Bypass",
+        "Additional sensor bypassed",
+        (starline, deviceId) => starline.additionalSensorBypass(deviceId),
+        { icon: Icon.LivestreamDisabled },
+    ),
+    serviceModeEnable: deviceCommand(
+        "Enable Service Mode",
+        "Service mode enabled",
+        (starline, deviceId) => starline.serviceModeEnable(deviceId),
+    ),
+    serviceModeDisable: deviceCommand(
+        "Disable Service Mode",
+        "Service mode disabled",
+        (starline, deviceId) => starline.serviceModeDisable(deviceId),
+    ),
+    horn: deviceCommand(
+        "Horn",
+        "Horn command sent",
+        (starline, deviceId) => starline.horn(deviceId),
+        {
+            icon: Icon.SpeakerUp,
+        },
+    ),
+    updatePosition: deviceCommand(
+        "Update Position",
+        "Position update requested",
+        (starline, deviceId) => starline.updatePosition(deviceId),
+        { icon: Icon.Map },
+    ),
+} satisfies Record<string, DeviceCommandConfig>;
+
 export type DeviceActionKey = keyof typeof DEVICE_ACTIONS;
+
+export const PRIMARY_DEVICE_ACTIONS = Object.keys(DEVICE_ACTIONS) as DeviceActionKey[];

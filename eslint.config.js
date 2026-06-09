@@ -151,22 +151,8 @@ module.exports = [
                     ],
                 },
             ],
-            "import/order": [
-                "error",
-                {
-                    groups: [
-                        "builtin",
-                        "external",
-                        "internal",
-                        "parent",
-                        "sibling",
-                        "index",
-                        "type",
-                    ],
-                    "newlines-between": "always",
-                    alphabetize: { order: "asc", caseInsensitive: true },
-                },
-            ],
+            // Disabled until eslint-plugin-import supports ESLint 10's SourceCode API.
+            "import/order": "off",
 
             "promise/always-return": "off",
             "promise/catch-or-return": "error",

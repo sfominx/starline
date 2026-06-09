@@ -1,126 +1,121 @@
 import { StarLineClient } from "./client";
-import { DEVELOPER_STARLINE } from "./constants";
+import { API_VERSION } from "./constants";
+import { deviceUrl } from "./urls";
 
 import type { CarStatus } from "../types/devices";
 import type { AsyncCommandResponse } from "../types/starline";
 
-function deviceSetParamUrl(deviceId: string) {
-    return `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/set_param`;
-}
+export type CommandValue = string | number | boolean;
+type CommandBody = Record<string, unknown> & { type: string };
+type AsyncCommandOptions = { intervalMs?: number; timeoutMs?: number };
 
-type StarLineCommandValue = string | number | boolean;
+const POLL_INTERVAL_MS = 2_000;
+const COMMAND_TIMEOUT_MS = 30_000;
+const DEFAULT_COMMAND_VALUE = 1;
 
-type StarLineCommandBody = Record<string, unknown> & {
-    type: string;
+const ASYNC_STATUS = {
+    done: 2,
+    failed: 3,
+    offline: 4,
+    deviceTimeout: 5,
+    expired: 6,
+} as const;
+
+const ASYNC_ERRORS: Partial<Record<number, string>> = {
+    [ASYNC_STATUS.failed]: "Command failed on device",
+    [ASYNC_STATUS.offline]: "Device is offline",
+    [ASYNC_STATUS.deviceTimeout]: "Device response timeout",
+    [ASYNC_STATUS.expired]: "Command status expired on server",
 };
 
-type AsyncCommandOptions = {
-    intervalMs?: number;
-    timeoutMs?: number;
-};
+const COMMAND_TYPES = {
+    startEngine: "ign_start",
+    stopEngine: "ign_stop",
+    arm: "arm_start",
+    disarm: "arm_stop",
+    armQuietly: "arm_quiet",
+    shockSensorBypass: "shock_bpass",
+    tiltSensorBypass: "tilt_bpass",
+    additionalSensorBypass: "add_sens_bpass",
+    serviceMode: "valet",
+    horn: "poke",
+    updatePosition: "update_position",
+} as const;
 
-const DEFAULT_POLL_INTERVAL_MS = 2_000;
-const DEFAULT_COMMAND_TIMEOUT_MS = 30_000;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const commandUrl = (deviceId: string) => deviceUrl(API_VERSION.v1, deviceId, "set_param");
+const asyncCommandUrl = (deviceId: string, commandId?: string) =>
+    deviceUrl(API_VERSION.v2, deviceId, ["async", commandId].filter(Boolean).join("/"));
+const commandBody = (type: string, value: CommandValue = DEFAULT_COMMAND_VALUE): CommandBody => ({
+    type,
+    [type]: value,
+});
+const isDone = ({ status }: AsyncCommandResponse) => status === ASYNC_STATUS.done;
+const isFailed = ({ status }: AsyncCommandResponse) => status >= ASYNC_STATUS.failed;
+const asyncError = ({ status, codestring }: AsyncCommandResponse) =>
+    ASYNC_ERRORS[status] ?? codestring;
 
-function sleep(ms: number) {
-    return new Promise((resolve) => {
-        setTimeout(resolve, ms);
-    });
-}
-
-function getAsyncCommandErrorMessage(response: AsyncCommandResponse) {
-    switch (response.status) {
-        case 3:
-            return "Command failed on device";
-        case 4:
-            return "Device is offline";
-        case 5:
-            return "Device response timeout";
-        case 6:
-            return "Command status expired on server";
-        case 0:
-        case 1:
-        case 2:
-            return response.codestring;
-    }
-}
+class AsyncCommandError extends Error {}
 
 export class StarLineCommands extends StarLineClient {
-    private commandBody(type: string, value: StarLineCommandValue = 1): StarLineCommandBody {
-        return { type, [type]: value };
-    }
-
-    sendCommand<T = unknown>(deviceId: string, type: string, value: StarLineCommandValue = 1) {
-        /**
-         * Execute device command via legacy blocking /set_param endpoint.
-         */
-        return this.request<T>(deviceSetParamUrl(deviceId), {
+    sendCommand<T = unknown>(deviceId: string, type: string, value: CommandValue = 1) {
+        return this.request<T>(commandUrl(deviceId), {
             method: "post",
-            body: this.commandBody(type, value),
+            body: commandBody(type, value),
         });
     }
 
     sendAsyncCommand<T = AsyncCommandResponse>(
         deviceId: string,
         type: string,
-        value: StarLineCommandValue = 1,
+        value: CommandValue = DEFAULT_COMMAND_VALUE,
     ) {
-        /**
-         * Execute device command via non-blocking /async endpoint.
-         */
-        const url = `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/async`;
-        return this.request<T>(url, { method: "post", body: { type, value } });
+        return this.request<T>(asyncCommandUrl(deviceId), {
+            method: "post",
+            body: { type, value },
+        });
     }
 
     getAsyncCommandStatus<T = AsyncCommandResponse>(deviceId: string, commandId: string) {
-        const url = `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/async/${commandId}`;
-        return this.request<T>(url);
+        return this.request<T>(asyncCommandUrl(deviceId, commandId));
     }
 
     async waitForAsyncCommand(
         deviceId: string,
         commandId: string,
-        options: AsyncCommandOptions = {},
+        { intervalMs = POLL_INTERVAL_MS, timeoutMs = COMMAND_TIMEOUT_MS }: AsyncCommandOptions = {},
     ) {
-        const intervalMs = options.intervalMs ?? DEFAULT_POLL_INTERVAL_MS;
-        const timeoutMs = options.timeoutMs ?? DEFAULT_COMMAND_TIMEOUT_MS;
         const deadline = Date.now() + timeoutMs;
 
         while (Date.now() <= deadline) {
             const status = await this.getAsyncCommandStatus(deviceId, commandId);
-
-            if (status.status === 2) {
+            if (isDone(status)) {
                 return status;
             }
-
-            if (status.status >= 3) {
-                throw new Error(getAsyncCommandErrorMessage(status));
+            if (isFailed(status)) {
+                throw new AsyncCommandError(asyncError(status));
             }
-
             await sleep(intervalMs);
         }
 
-        throw new Error("Async command polling timeout");
+        throw new AsyncCommandError("Async command polling timeout");
     }
 
     async sendAsyncCommandAndWait(
         deviceId: string,
         type: string,
-        value: StarLineCommandValue,
+        value: CommandValue,
         options?: AsyncCommandOptions,
     ) {
         const response = await this.sendAsyncCommand(deviceId, type, value);
-
-        if (response.status === 2) {
+        if (isDone(response)) {
             return response;
         }
-
-        if (response.status >= 3) {
-            throw new Error(getAsyncCommandErrorMessage(response));
+        if (isFailed(response)) {
+            throw new AsyncCommandError(asyncError(response));
         }
-
         if (response.cmd_id === undefined || response.cmd_id.length === 0) {
-            throw new Error("Async command response does not contain command id");
+            throw new AsyncCommandError("Async command response does not contain command id");
         }
 
         return this.waitForAsyncCommand(deviceId, response.cmd_id, options);
@@ -129,65 +124,81 @@ export class StarLineCommands extends StarLineClient {
     async sendCommandWithAsyncFallback<T = unknown>(
         deviceId: string,
         type: string,
-        value: StarLineCommandValue,
+        value: CommandValue,
         options?: AsyncCommandOptions,
     ) {
         try {
             return (await this.sendAsyncCommandAndWait(deviceId, type, value, options)) as T;
-        } catch {
+        } catch (error) {
+            if (error instanceof AsyncCommandError) {
+                throw error;
+            }
+
             return this.sendCommand<T>(deviceId, type, value);
         }
     }
 
     startEngine(deviceId: string) {
-        return this.sendCommandWithAsyncFallback(deviceId, "ign_start", 1);
+        return this.asyncFallback(deviceId, COMMAND_TYPES.startEngine);
     }
 
     stopEngine(deviceId: string) {
-        return this.sendCommandWithAsyncFallback(deviceId, "ign_stop", 1);
+        return this.asyncFallback(deviceId, COMMAND_TYPES.stopEngine);
     }
 
-    arm(deviceId: string): Promise<CarStatus> {
-        return this.sendCommand<CarStatus>(deviceId, "arm_start");
+    arm(deviceId: string) {
+        return this.carStatusCommand(deviceId, COMMAND_TYPES.arm);
     }
 
-    disarm(deviceId: string): Promise<CarStatus> {
-        return this.sendCommand<CarStatus>(deviceId, "arm_stop");
+    disarm(deviceId: string) {
+        return this.carStatusCommand(deviceId, COMMAND_TYPES.disarm);
     }
 
-    armQuietly(deviceId: string): Promise<CarStatus> {
-        return this.sendCommand<CarStatus>(deviceId, "arm_quiet", 1);
+    armQuietly(deviceId: string) {
+        return this.carStatusCommand(deviceId, COMMAND_TYPES.armQuietly, 1);
     }
 
-    disarmQuietly(deviceId: string): Promise<CarStatus> {
-        return this.sendCommand<CarStatus>(deviceId, "arm_quiet", 0);
+    disarmQuietly(deviceId: string) {
+        return this.carStatusCommand(deviceId, COMMAND_TYPES.armQuietly, 0);
     }
 
     shockSensorBypass(deviceId: string) {
-        return this.sendCommand(deviceId, "shock_bpass");
+        return this.sendCommand(deviceId, COMMAND_TYPES.shockSensorBypass);
     }
 
     tiltSensorBypass(deviceId: string) {
-        return this.sendCommand(deviceId, "tilt_bpass");
+        return this.sendCommand(deviceId, COMMAND_TYPES.tiltSensorBypass);
     }
 
     additionalSensorBypass(deviceId: string) {
-        return this.sendCommand(deviceId, "add_sens_bpass");
+        return this.sendCommand(deviceId, COMMAND_TYPES.additionalSensorBypass);
     }
 
     serviceModeEnable(deviceId: string) {
-        return this.sendCommand(deviceId, "valet", 1);
+        return this.setServiceMode(deviceId, true);
     }
 
     serviceModeDisable(deviceId: string) {
-        return this.sendCommand(deviceId, "valet", 0);
+        return this.setServiceMode(deviceId, false);
     }
 
     horn(deviceId: string) {
-        return this.sendCommandWithAsyncFallback(deviceId, "poke", 1);
+        return this.asyncFallback(deviceId, COMMAND_TYPES.horn);
     }
 
     updatePosition(deviceId: string) {
-        return this.sendCommandWithAsyncFallback(deviceId, "update_position", 1);
+        return this.asyncFallback(deviceId, COMMAND_TYPES.updatePosition);
+    }
+
+    private asyncFallback(deviceId: string, type: string) {
+        return this.sendCommandWithAsyncFallback(deviceId, type, DEFAULT_COMMAND_VALUE);
+    }
+
+    private carStatusCommand(deviceId: string, type: string, value?: CommandValue) {
+        return this.sendCommand<CarStatus>(deviceId, type, value);
+    }
+
+    private setServiceMode(deviceId: string, enabled: boolean) {
+        return this.sendCommand(deviceId, COMMAND_TYPES.serviceMode, Number(enabled));
     }
 }

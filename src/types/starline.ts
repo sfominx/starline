@@ -36,7 +36,7 @@ export type DeviceStateResponse = StarLineApiResponse & {
 
 export type DevicePositionResponse = StarLineApiResponse & {
     device: {
-        position: {
+        position?: {
             lat?: string;
             lon?: string;
             ts?: string;

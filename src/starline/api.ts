@@ -1,3 +1,3 @@
-import { StarLineUserApi } from "./user";
+import { StarLineSettingsApi } from "./settings";
 
-export class StarLine extends StarLineUserApi {}
+export class StarLine extends StarLineSettingsApi {}

@@ -1,7 +1,8 @@
 import { LocalStorage } from "@raycast/api";
 
 import { StarLineCommands } from "./commands";
-import { DEVELOPER_STARLINE, LOCAL_STORAGE } from "./constants";
+import { API_VERSION, type ApiVersion, LOCAL_STORAGE } from "./constants";
+import { deviceUrl, legacyDeviceUrl, userUrl } from "./urls";
 
 import type { Devices } from "../types/devices";
 import type {
@@ -14,122 +15,88 @@ import type {
 } from "../types/starline";
 
 export class StarLineDeviceApi extends StarLineCommands {
-    async getDevices(): Promise<{ result?: Devices; error?: string }> {
-        /**
-         * Get user devices
-         */
+    async getDevices(): Promise<{ result: Devices }> {
         const { userId } = await this.auth();
+        const data = await this.request<Devices>(userUrl(API_VERSION.v2, userId, "user_info"));
+        const defaultDeviceId = Number(await LocalStorage.getItem(LOCAL_STORAGE.DEFAULT_DEVICE));
 
-        const url = `${DEVELOPER_STARLINE}json/v2/user/${userId}/user_info`;
-        const data = await this.request<Devices>(url);
+        const devices = [...data.devices, ...(data.shared_devices ?? [])].map((device) => ({
+            ...device,
+            default: device.device_id === defaultDeviceId,
+        }));
 
-        const defaultDevice = Number(
-            await LocalStorage.getItem<number>(LOCAL_STORAGE.DEFAULT_DEVICE),
-        );
-
-        data.devices.forEach((element, index) => {
-            data.devices[index].default = element.device_id === defaultDevice;
-        });
-
-        return { result: data };
+        return { result: { ...data, devices, shared_devices: [] } };
     }
 
     getControlsLibrary<T = ControlsLibraryResponse>(deviceId: string) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/device/${deviceId}/ctrls_library`);
+        return this.request<T>(legacyDeviceUrl(deviceId, "ctrls_library"));
     }
 
     getDeviceInfo<T = unknown>(deviceId: string) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/info`);
+        return this.getDevice<T>(API_VERSION.v1, deviceId, "info");
     }
 
     updateDeviceInfo<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/info`, {
-            method: "post",
-            body,
-        });
+        return this.postDevice<T>(API_VERSION.v1, deviceId, "info", body);
     }
 
     getWays<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/ways`, {
-            method: "post",
-            body,
-        });
+        return this.postDevice<T>(API_VERSION.v1, deviceId, "ways", body);
     }
 
     updateControls<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v2/device/${deviceId}/controls`, {
-            method: "post",
-            body,
-        });
+        return this.postDevice<T>(API_VERSION.v2, deviceId, "controls", body);
     }
 
     getObdParams<T = ObdParamsResponse>(deviceId: string) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/device/${deviceId}/obd_params`);
+        return this.request<T>(legacyDeviceUrl(deviceId, "obd_params"));
     }
 
     getPosition<T = DevicePositionResponse>(deviceId: string) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/position`);
+        return this.getDevice<T>(API_VERSION.v1, deviceId, "position");
     }
 
     getState<T = DeviceStateResponse>(deviceId: string) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v2/device/${deviceId}/state`);
+        return this.getDevice<T>(API_VERSION.v2, deviceId, "state");
     }
 
     getEvents<T = DeviceEventsResponse>(deviceId: string, body: unknown) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v2/device/${deviceId}/events`, {
-            method: "post",
-            body,
-        });
-    }
-
-    getEventDescription<T = unknown>(eventId: string) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v3/library/events/${eventId}`);
-    }
-
-    getEventsLibrary<T = unknown>() {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v3/library/events`);
+        return this.postDevice<T>(API_VERSION.v2, deviceId, "events", body);
     }
 
     getObdErrors<T = ObdErrorsResponse>(deviceId: string) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/device/${deviceId}/obd_errors`);
+        return this.request<T>(legacyDeviceUrl(deviceId, "obd_errors"));
     }
 
     getDeviceData<T = unknown>(deviceId: string) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v3/device/${deviceId}/data`);
+        return this.getDevice<T>(API_VERSION.v3, deviceId, "data");
     }
 
     getDeviceReport<T = unknown>(deviceId: string) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v2/device/${deviceId}`);
+        return this.getDevice<T>(API_VERSION.v2, deviceId);
     }
 
     getDrivingScore<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v2/device/${deviceId}/driving_score`, {
-            method: "post",
-            body,
-        });
+        return this.postDevice<T>(API_VERSION.v2, deviceId, "driving_score", body);
     }
 
     getDrivingScoreHistory<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/driving_score_history`,
-            {
-                method: "post",
-                body,
-            },
-        );
+        return this.postDevice<T>(API_VERSION.v2, deviceId, "driving_score_history", body);
     }
 
     getObdData<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/getObdData`, {
-            method: "post",
-            body,
-        });
+        return this.postDevice<T>(API_VERSION.v1, deviceId, "getObdData", body);
     }
 
     getDetails<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/details`, {
-            method: "post",
-            body,
-        });
+        return this.postDevice<T>(API_VERSION.v1, deviceId, "details", body);
+    }
+
+    private getDevice<T>(version: ApiVersion, deviceId: string, path?: string) {
+        return this.request<T>(deviceUrl(version, deviceId, path));
+    }
+
+    private postDevice<T>(version: ApiVersion, deviceId: string, path: string, body: unknown) {
+        return this.request<T>(deviceUrl(version, deviceId, path), { method: "post", body });
     }
 }

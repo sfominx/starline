@@ -4,26 +4,12 @@ import ClearAuthCacheAction from "./components/actions/ClearAuthCache";
 import DevicesItem from "./components/Item";
 import { DevicesProvider, useDevicesContext } from "./context/devices";
 import { StarLineProvider, useStarLine } from "./context/starline";
-
-import type { Item } from "./types/devices";
+import { getErrorMessage } from "./utils/errors";
+import { hasText } from "./utils/format";
 
 type CaptchaFormValues = {
     captchaValue: string;
 };
-
-function hasText(value: string | undefined): value is string {
-    return value !== undefined && value.length > 0;
-}
-
-function DevicesItemList({ devices }: { devices: Item[] }) {
-    return (
-        <>
-            {devices.map((device) => (
-                <DevicesItem key={device.device_id} item={device} />
-            ))}
-        </>
-    );
-}
 
 function CaptchaForm({ captchaImg, captchaSid }: { captchaImg: string; captchaSid: string }) {
     const { loadItems, updateState } = useDevicesContext();
@@ -32,19 +18,10 @@ function CaptchaForm({ captchaImg, captchaSid }: { captchaImg: string; captchaSi
     const submitCaptcha = async ({ captchaValue }: CaptchaFormValues) => {
         try {
             await starline.loginWithCaptcha(captchaSid, captchaValue);
-            updateState((state) => ({
-                ...state,
-                captchaNeeded: false,
-                captchaImg: undefined,
-                captchaSid: undefined,
-            }));
+            updateState({ captchaImg: undefined, captchaSid: undefined });
             await loadItems();
         } catch (error) {
-            await showToast(
-                Toast.Style.Failure,
-                "Captcha failed",
-                error instanceof Error ? error.message : "Unknown error",
-            );
+            await showToast(Toast.Style.Failure, "Captcha failed", getErrorMessage(error));
         }
     };
 
@@ -89,7 +66,9 @@ function DevicesList() {
                     </ActionPanel>
                 }
             />
-            <DevicesItemList devices={devices} />
+            {devices.map((device) => (
+                <DevicesItem key={device.device_id} item={device} />
+            ))}
         </List>
     );
 }

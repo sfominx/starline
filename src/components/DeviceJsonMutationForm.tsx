@@ -11,7 +11,9 @@ import {
 import { useState } from "react";
 
 import { useStarLine } from "../context/starline";
+import { getErrorMessage } from "../utils/errors";
 
+import type { StarLine } from "../starline/api";
 import type { Item } from "../types/devices";
 
 export type DeviceJsonMutationKind =
@@ -30,8 +32,31 @@ type DeviceJsonMutationFormProps = {
     defaultBody?: unknown;
 };
 
+type JsonMutationRunner = (starline: StarLine, deviceId: string, body: unknown) => Promise<unknown>;
+
+const JSON_MUTATIONS: Record<DeviceJsonMutationKind, JsonMutationRunner> = {
+    deviceInfo: (starline, deviceId, body) => starline.updateDeviceInfo(deviceId, body),
+    controls: (starline, deviceId, body) => starline.updateControls(deviceId, body),
+    comfortOptions: (starline, deviceId, body) => starline.putComfortOptions(deviceId, body),
+    webastoSettings: (starline, deviceId, body) => starline.updateWebastoSettings(deviceId, body),
+    remoteStartSettings: (starline, deviceId, body) =>
+        starline.updateRemoteStartSettings(deviceId, body),
+    shockSensorSettings: (starline, deviceId, body) =>
+        starline.updateShockSensorSettings(deviceId, body),
+    monitoringSettings: (starline, deviceId, body) =>
+        starline.updateMonitoringSettings(deviceId, body),
+};
+
 function defaultJson(value: unknown) {
-    return JSON.stringify(value === undefined ? {} : value, null, 4);
+    return JSON.stringify(value ?? {}, null, 4);
+}
+
+function parseJsonBody(value: string): { ok: true; body: unknown } | { ok: false } {
+    try {
+        return { ok: true, body: JSON.parse(value) as unknown };
+    } catch {
+        return { ok: false };
+    }
 }
 
 function DeviceJsonMutationForm(props: DeviceJsonMutationFormProps) {
@@ -40,11 +65,9 @@ function DeviceJsonMutationForm(props: DeviceJsonMutationFormProps) {
     const [body, setBody] = useState(defaultJson(defaultBody));
 
     const submit = async () => {
-        let parsedBody: unknown;
+        const parsedBody = parseJsonBody(body);
 
-        try {
-            parsedBody = JSON.parse(body);
-        } catch {
+        if (!parsedBody.ok) {
             await showToast(Toast.Style.Failure, "Invalid JSON", "Please check request body");
             return;
         }
@@ -67,31 +90,7 @@ function DeviceJsonMutationForm(props: DeviceJsonMutationFormProps) {
         const deviceId = item.device_id.toString();
 
         try {
-            switch (kind) {
-                case "deviceInfo":
-                    await starline.updateDeviceInfo(deviceId, parsedBody);
-                    break;
-                case "controls":
-                    await starline.updateControls(deviceId, parsedBody);
-                    break;
-                case "comfortOptions":
-                    await starline.putComfortOptions(deviceId, parsedBody);
-                    break;
-                case "webastoSettings":
-                    await starline.updateWebastoSettings(deviceId, parsedBody);
-                    break;
-                case "remoteStartSettings":
-                    await starline.updateRemoteStartSettings(deviceId, parsedBody);
-                    break;
-                case "shockSensorSettings":
-                    await starline.updateShockSensorSettings(deviceId, parsedBody);
-                    break;
-                case "monitoringSettings":
-                    await starline.updateMonitoringSettings(deviceId, parsedBody);
-                    break;
-                default:
-                    break;
-            }
+            await JSON_MUTATIONS[kind](starline, deviceId, parsedBody.body);
 
             toast.style = Toast.Style.Success;
             toast.title = "Saved";
@@ -99,7 +98,7 @@ function DeviceJsonMutationForm(props: DeviceJsonMutationFormProps) {
         } catch (error) {
             toast.style = Toast.Style.Failure;
             toast.title = "Failed to save";
-            toast.message = error instanceof Error ? error.message : "Unknown error";
+            toast.message = getErrorMessage(error);
         }
     };
 

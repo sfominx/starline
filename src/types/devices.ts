@@ -17,16 +17,16 @@ export type Item = {
     status: string;
     ts_activity: string;
     type: string;
-    typename: string;
+    typename?: string;
     mayak_temp: string;
-    position: {
+    position?: {
         x: string;
         y: string;
         ts: string;
         r: string;
     };
     reg_date: string;
-    balance: {
+    balance?: {
         active: {
             value: string;
             currency: string;
@@ -65,13 +65,13 @@ export type Item = {
         add_sens_bpass: boolean;
         dvr: boolean;
     };
-    functions: [string];
-    controls: [{ position: number; type: string }];
+    functions?: string[];
+    controls?: Array<{ position: number; type: string }>;
 };
 
 export type Devices = {
     devices: Item[];
-    shared_devices?: [];
+    shared_devices?: Item[];
     code?: number;
     codestring?: string;
 };

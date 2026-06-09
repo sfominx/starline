@@ -1,31 +1,25 @@
 /* eslint max-classes-per-file: 0 */
+const UNKNOWN_ERROR_MESSAGE = "Unknown error";
+
 class ManuallyThrownError extends Error {}
 
 export class DisplayableError extends ManuallyThrownError {}
 
+export function getErrorMessage(error: unknown, fallback = UNKNOWN_ERROR_MESSAGE) {
+    return error instanceof Error ? error.message : fallback;
+}
+
 export function getDisplayableErrorMessage(error: unknown) {
-    if (error instanceof DisplayableError) {
-        return error.message;
-    }
-    return undefined;
+    return error instanceof DisplayableError ? error.message : undefined;
 }
 
 export class CaptchaNeededError extends DisplayableError {
-    captchaSid: string | undefined;
-
-    captchaImg: string | undefined;
-
-    constructor(message?: string, captchaSid?: string, captchaImg?: string) {
-        super(message ?? "Failed to load devices items. Captcha needed.");
+    constructor(
+        message = "Failed to load devices items. Captcha needed.",
+        readonly captchaSid?: string,
+        readonly captchaImg?: string,
+    ) {
+        super(message);
         this.name = "CaptchaNeededError";
-        this.captchaSid = captchaSid;
-        this.captchaImg = captchaImg;
-    }
-}
-
-export class FailedToLoadDevicesItemsError extends ManuallyThrownError {
-    constructor(message?: string) {
-        super(message ?? "Failed to load devices items");
-        this.name = "FailedToLoadDevicesItemsError";
     }
 }

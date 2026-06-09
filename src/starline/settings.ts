@@ -1,63 +1,52 @@
-import { DEVELOPER_STARLINE } from "./constants";
+import { API_VERSION, type ApiVersion } from "./constants";
 import { StarLineDeviceApi } from "./devices";
+import { deviceUrl } from "./urls";
 
 import type { DeviceSettingsResponse } from "../types/starline";
 
 export class StarLineSettingsApi extends StarLineDeviceApi {
     putComfortOptions<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/put_comfort_options`,
-            {
-                method: "post",
-                body,
-            },
-        );
+        return this.postSettings<T>(deviceId, "put_comfort_options", body);
     }
 
     getSupportedComfortOptions<T = unknown>(deviceId: string) {
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/supported_comfort_options`,
-        );
+        return this.getSettingsEndpoint<T>(deviceId, "supported_comfort_options");
     }
 
     updateWebastoSettings<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v1/device/${deviceId}/settings/webasto`, {
-            method: "post",
-            body,
-        });
+        return this.postSettings<T>(deviceId, "settings/webasto", body);
     }
 
     updateRemoteStartSettings<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v2/device/${deviceId}/settings/remote_start`,
-            {
-                method: "post",
-                body,
-            },
-        );
+        return this.postSettings<T>(deviceId, "settings/remote_start", body, API_VERSION.v2);
     }
 
     updateShockSensorSettings<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/settings/shock_sens`,
-            {
-                method: "post",
-                body,
-            },
-        );
+        return this.postSettings<T>(deviceId, "settings/shock_sens", body);
     }
 
     updateMonitoringSettings<T = unknown>(deviceId: string, body: unknown) {
-        return this.request<T>(
-            `${DEVELOPER_STARLINE}json/v1/device/${deviceId}/settings/monitoring`,
-            {
-                method: "post",
-                body,
-            },
-        );
+        return this.postSettings<T>(deviceId, "settings/monitoring", body);
     }
 
     getSettings<T = DeviceSettingsResponse>(deviceId: string) {
-        return this.request<T>(`${DEVELOPER_STARLINE}json/v4/device/${deviceId}/settings`);
+        return this.getSettingsEndpoint<T>(deviceId, "settings", API_VERSION.v4);
+    }
+
+    private getSettingsEndpoint<T>(
+        deviceId: string,
+        path: string,
+        version: ApiVersion = API_VERSION.v1,
+    ) {
+        return this.request<T>(deviceUrl(version, deviceId, path));
+    }
+
+    private postSettings<T>(
+        deviceId: string,
+        path: string,
+        body: unknown,
+        version: ApiVersion = API_VERSION.v1,
+    ) {
+        return this.request<T>(deviceUrl(version, deviceId, path), { method: "post", body });
     }
 }

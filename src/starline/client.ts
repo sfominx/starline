@@ -4,88 +4,107 @@ import { LocalStorage, getPreferenceValues } from "@raycast/api";
 import fetch from "node-fetch";
 
 import { CaptchaNeededError, DisplayableError } from "../utils/errors";
+import { hasText } from "../utils/format";
 import { getItem, setItemWithLifetime } from "../utils/localStorage";
 
-import { DEVELOPER_STARLINE, ID_STARLINE, LOCAL_STORAGE } from "./constants";
+import { LOCAL_STORAGE, STARLINE_ORIGINS } from "./constants";
+import { idApiV3Url } from "./urls";
 
 type HttpMethod = "get" | "post" | "delete";
+type RequestOptions = { method?: HttpMethod; body?: unknown; retryOnAuthError?: boolean };
+type ApiV3Response<TDesc extends Record<string, unknown>> = { state: number; desc: TDesc };
+type AuthTokens = { userId: string; slnetUserToken: string };
+type StoredSecretKey =
+    | typeof LOCAL_STORAGE.APP_CODE
+    | typeof LOCAL_STORAGE.APP_TOKEN
+    | typeof LOCAL_STORAGE.SLID_USER_TOKEN
+    | typeof LOCAL_STORAGE.SLNET_TOKEN;
+type LoginResponse = ApiV3Response<{
+    message?: string;
+    captchaSid?: string;
+    captchaImg?: string;
+    user_token?: string;
+}>;
 
-type RequestOptions = {
-    method?: HttpMethod;
-    body?: unknown;
-    retryOnAuthError?: boolean;
-};
+const JSON_HEADERS = { "Content-Type": "application/json" };
+const CAPTCHA_NEEDED_MESSAGE = "Captcha needed.";
+const AUTH_CACHE_KEYS = Object.values(LOCAL_STORAGE).filter(
+    (key) => key !== LOCAL_STORAGE.DEFAULT_DEVICE,
+);
 
-type ApiV3Response<TDesc extends Record<string, unknown>> = {
-    state: number;
-    desc: TDesc;
-};
+const hash = (algorithm: "md5" | "sha1", value: string) =>
+    createHash(algorithm).update(value).digest("hex");
+const md5 = (value: string) => hash("md5", value);
+const sha1 = (value: string) => hash("sha1", value);
+const parseSlnetCookie = (setCookie: string | null) =>
+    /(?:^|[,;\s])slnet=([^;,\s]+)/.exec(setCookie ?? "")?.[1];
 
-type AuthTokens = {
-    userId: LocalStorage.Value;
-    slnetUserToken: string;
-};
+async function readJson<T>(response: { json: () => Promise<unknown> }) {
+    return (await response.json()) as T;
+}
 
-const AUTH_CACHE_KEYS = [
-    LOCAL_STORAGE.CAPTCHA_SID,
-    LOCAL_STORAGE.CAPTCHA_IMG,
-    LOCAL_STORAGE.APP_CODE,
-    LOCAL_STORAGE.APP_CODE_EOL,
-    LOCAL_STORAGE.APP_TOKEN,
-    LOCAL_STORAGE.APP_TOKEN_EOL,
-    LOCAL_STORAGE.SLID_USER_TOKEN,
-    LOCAL_STORAGE.SLID_USER_TOKEN_EOL,
-    LOCAL_STORAGE.SLNET_TOKEN,
-    LOCAL_STORAGE.SLNET_TOKEN_EOL,
-    LOCAL_STORAGE.USER_ID,
-] as const;
-
-function parseSlnetCookie(setCookie: string | null) {
-    if (setCookie === null || setCookie.length === 0) {
-        return undefined;
+async function readOptionalJson<T>(response: { text: () => Promise<string> }) {
+    const text = await response.text();
+    if (text === "") {
+        return {} as T;
     }
 
-    const match = /(?:^|[,;\s])slnet=([^;,\s]+)/.exec(setCookie);
-    return match?.[1];
+    try {
+        return JSON.parse(text) as T;
+    } catch {
+        return { message: text } as T;
+    }
 }
 
-function hasText(value: string | undefined): value is string {
-    return value !== undefined && value.length > 0;
-}
-
-function isAuthError(responseStatus: number, data: unknown) {
-    if (responseStatus === 401 || responseStatus === 403) {
+function isAuthError(status: number, data: unknown) {
+    if ([401, 403].includes(status)) {
         return true;
     }
 
-    const errorData = data as { code?: number; message?: string; codestring?: string };
-    const message = `${errorData.message ?? ""} ${errorData.codestring ?? ""}`.toLowerCase();
+    const { code, message, codestring } = data as {
+        code?: number;
+        message?: string;
+        codestring?: string;
+    };
+    const text = `${message ?? ""} ${codestring ?? ""}`.toLowerCase();
 
-    return errorData.code === 401 || message.includes("auth") || message.includes("token");
+    return code === 401 || text.includes("auth") || text.includes("token");
+}
+
+function apiValueOrThrow<TDesc extends Record<string, unknown>>(
+    data: ApiV3Response<TDesc>,
+    select: (desc: TDesc) => string | undefined,
+    fallbackMessage: string,
+) {
+    const value = select(data.desc);
+    if (data.state === 1 && hasText(value)) {
+        return value;
+    }
+
+    const message = (data.desc.message as string | undefined) ?? fallbackMessage;
+    throw new DisplayableError(data.state === 0 ? message : `Unknown API state: ${data.state}`);
+}
+
+function apiFailureMessage(data: unknown) {
+    const { message, codestring } = data as { message?: string; codestring?: string };
+    return message ?? codestring ?? "API call failed";
 }
 
 export class StarLineClient {
-    private AppId: string;
+    private readonly appId: string;
 
-    private Secret: string;
+    private readonly secret: string;
 
-    private Login: string;
+    private readonly username: string;
 
-    private Password: string;
+    private readonly password: string;
 
     constructor() {
         const { AppId, Secret, Login, Password } = getPreferenceValues<Preferences>();
-        this.AppId = AppId;
-        this.Secret = Secret;
-        this.Login = Login;
-        this.Password = Password;
-    }
-
-    initialize(): Promise<this> {
-        /**
-         * Initialize the API client
-         */
-        return Promise.resolve(this);
+        this.appId = AppId;
+        this.secret = Secret;
+        this.username = Login;
+        this.password = Password;
     }
 
     static async clearAuthCache() {
@@ -96,61 +115,41 @@ export class StarLineClient {
         return StarLineClient.clearAuthCache();
     }
 
-    private async getAppCode() {
-        const cachedAppCode = await getItem(LOCAL_STORAGE.APP_CODE);
-
-        if (cachedAppCode !== undefined) {
-            return cachedAppCode;
+    private async cachedSecret(key: StoredSecretKey, load: () => Promise<string>) {
+        const cached = await getItem(key);
+        if (cached !== undefined) {
+            return cached;
         }
 
-        const secretHash = createHash("md5").update(this.Secret).digest("hex");
-        const url = `${ID_STARLINE}apiV3/application/getCode?appId=${this.AppId}&secret=${secretHash}`;
-        const response = await fetch(url);
-        const data = (await response.json()) as ApiV3Response<{
-            code?: string;
-            message?: string;
-        }>;
-
-        if (data.state === 0 && hasText(data.desc.message)) {
-            throw new DisplayableError(data.desc.message);
-        }
-
-        if (data.state === 1 && hasText(data.desc.code)) {
-            await setItemWithLifetime(LOCAL_STORAGE.APP_CODE, data.desc.code);
-            return data.desc.code;
-        }
-
-        throw new DisplayableError(`Unknown error: ${data.state}`);
+        const value = await load();
+        await setItemWithLifetime(key, value);
+        return value;
     }
 
-    private async getAppToken() {
-        const cachedToken = await getItem(LOCAL_STORAGE.APP_TOKEN);
+    private getAppCode() {
+        return this.cachedSecret(LOCAL_STORAGE.APP_CODE, async () => {
+            const response = await fetch(
+                idApiV3Url("application/getCode", { appId: this.appId, secret: md5(this.secret) }),
+            );
+            const data =
+                await readJson<ApiV3Response<{ code?: string; message?: string }>>(response);
+            return apiValueOrThrow(data, ({ code }) => code, "Failed to get app code");
+        });
+    }
 
-        if (cachedToken !== undefined) {
-            return cachedToken;
-        }
-
-        const appCode = await this.getAppCode();
-        const secretHash = createHash("md5")
-            .update(this.Secret + appCode)
-            .digest("hex");
-        const url = `${ID_STARLINE}apiV3/application/getToken?appId=${this.AppId}&secret=${secretHash}`;
-        const response = await fetch(url);
-        const data = (await response.json()) as ApiV3Response<{
-            token?: string;
-            message?: string;
-        }>;
-
-        if (data.state === 0) {
-            throw new DisplayableError(data.desc.message ?? "Failed to get app token");
-        }
-
-        if (data.state === 1 && hasText(data.desc.token)) {
-            await setItemWithLifetime(LOCAL_STORAGE.APP_TOKEN, data.desc.token);
-            return data.desc.token;
-        }
-
-        throw new DisplayableError(`Unknown error: ${data.state}`);
+    private getAppToken() {
+        return this.cachedSecret(LOCAL_STORAGE.APP_TOKEN, async () => {
+            const code = await this.getAppCode();
+            const response = await fetch(
+                idApiV3Url("application/getToken", {
+                    appId: this.appId,
+                    secret: md5(this.secret + code),
+                }),
+            );
+            const data =
+                await readJson<ApiV3Response<{ token?: string; message?: string }>>(response);
+            return apiValueOrThrow(data, ({ token }) => token, "Failed to get app token");
+        });
     }
 
     async loginWithCaptcha(captchaSid: string, captchaCode: string) {
@@ -158,91 +157,77 @@ export class StarLineClient {
         return this.login(captchaSid, captchaCode);
     }
 
-    private async login(captchaSid?: string, captchaCode?: string) {
-        const cachedToken = await getItem(LOCAL_STORAGE.SLID_USER_TOKEN);
+    private login(captchaSid?: string, captchaCode?: string) {
+        return this.cachedSecret(LOCAL_STORAGE.SLID_USER_TOKEN, async () => {
+            const data = await this.requestLogin(captchaSid, captchaCode);
 
-        if (cachedToken !== undefined) {
-            return cachedToken;
-        }
+            if (data.state === 0) {
+                await this.handleLoginError(data.desc);
+            }
 
-        const form = new URLSearchParams({
-            login: this.Login,
-            pass: createHash("sha1").update(this.Password).digest("hex"),
+            return apiValueOrThrow(data, ({ user_token: token }) => token, "Login failed");
         });
+    }
+
+    private async requestLogin(captchaSid?: string, captchaCode?: string) {
+        const form = new URLSearchParams({ login: this.username, pass: sha1(this.password) });
 
         if (hasText(captchaSid) && hasText(captchaCode)) {
             form.append("captchaSid", captchaSid);
             form.append("captchaCode", captchaCode);
         }
 
-        const response = await fetch(`${ID_STARLINE}apiV3/user/login`, {
+        const response = await fetch(idApiV3Url("user/login"), {
             method: "POST",
             body: form,
             headers: { token: await this.getAppToken() },
         });
-        const data = (await response.json()) as ApiV3Response<{
-            message?: string;
-            captchaSid?: string;
-            captchaImg?: string;
-            user_token?: string;
-        }>;
-
-        if (data.state === 0) {
-            await this.handleLoginError(data.desc);
-        }
-
-        if (data.state === 1 && hasText(data.desc.user_token)) {
-            await setItemWithLifetime(LOCAL_STORAGE.SLID_USER_TOKEN, data.desc.user_token);
-            return data.desc.user_token;
-        }
-
-        throw new DisplayableError(`Unknown error: ${data.state}`);
+        return readJson<LoginResponse>(response);
     }
 
-    private async handleLoginError(desc: {
-        message?: string;
-        captchaSid?: string;
-        captchaImg?: string;
-    }) {
-        if (
-            desc.message !== "Captcha needed." ||
-            !hasText(desc.captchaSid) ||
-            !hasText(desc.captchaImg)
-        ) {
-            throw new DisplayableError(desc.message ?? "Login failed");
+    private async handleLoginError({ message, captchaSid, captchaImg }: LoginResponse["desc"]) {
+        const needsCaptcha =
+            message === CAPTCHA_NEEDED_MESSAGE && hasText(captchaSid) && hasText(captchaImg);
+
+        if (!needsCaptcha) {
+            throw new DisplayableError(message ?? "Login failed");
         }
 
-        await LocalStorage.setItem(LOCAL_STORAGE.CAPTCHA_SID, desc.captchaSid);
-        await LocalStorage.setItem(LOCAL_STORAGE.CAPTCHA_IMG, desc.captchaImg);
-        throw new CaptchaNeededError(desc.message, desc.captchaSid, desc.captchaImg);
+        await Promise.all([
+            LocalStorage.setItem(LOCAL_STORAGE.CAPTCHA_SID, captchaSid),
+            LocalStorage.setItem(LOCAL_STORAGE.CAPTCHA_IMG, captchaImg),
+        ]);
+        throw new CaptchaNeededError(message, captchaSid, captchaImg);
     }
 
     protected async auth(): Promise<AuthTokens> {
-        const userId = await LocalStorage.getItem(LOCAL_STORAGE.USER_ID);
-        const slnetUserToken = await getItem(LOCAL_STORAGE.SLNET_TOKEN);
+        const [cachedUserId, cachedToken] = await Promise.all([
+            LocalStorage.getItem(LOCAL_STORAGE.USER_ID),
+            getItem(LOCAL_STORAGE.SLNET_TOKEN),
+        ]);
 
-        if (userId !== undefined && slnetUserToken !== undefined) {
-            return { userId: userId.toString(), slnetUserToken };
+        if (cachedUserId !== undefined && cachedToken !== undefined) {
+            return { userId: cachedUserId.toString(), slnetUserToken: cachedToken };
         }
 
-        const response = await fetch(`${DEVELOPER_STARLINE}json/v2/auth.slid`, {
+        const response = await fetch(`${STARLINE_ORIGINS.developer}json/v2/auth.slid`, {
             method: "post",
             body: JSON.stringify({ slid_token: await this.login() }),
-            headers: { "Content-Type": "application/json" },
+            headers: JSON_HEADERS,
         });
-        const data = (await response.json()) as { user_id: string };
-        const tokenFromCookie = parseSlnetCookie(response.headers.get("set-cookie"));
+        const data = await readJson<{ user_id: string }>(response);
+        const slnetUserToken = parseSlnetCookie(response.headers.get("set-cookie"));
 
-        if (!hasText(tokenFromCookie)) {
+        if (!hasText(slnetUserToken)) {
             throw new DisplayableError("Failed to parse SLNet token from auth response");
         }
 
         await Promise.all([
             LocalStorage.setItem(LOCAL_STORAGE.USER_ID, data.user_id),
-            setItemWithLifetime(LOCAL_STORAGE.SLNET_TOKEN, tokenFromCookie),
+            setItemWithLifetime(LOCAL_STORAGE.SLNET_TOKEN, slnetUserToken),
         ]);
 
-        return { userId: data.user_id, slnetUserToken: tokenFromCookie };
+        return { userId: data.user_id, slnetUserToken };
     }
 
     protected async clearWebApiAuthCache() {
@@ -254,23 +239,14 @@ export class StarLineClient {
     }
 
     protected async request<T = unknown>(url: string, options: RequestOptions = {}): Promise<T> {
-        /**
-         * Make WebAPI call with SLNet cookie auth.
-         */
         const { method = "get", body, retryOnAuthError = true } = options;
         const { slnetUserToken } = await this.auth();
-
         const response = await fetch(url, {
             method,
             body: body === undefined ? undefined : JSON.stringify(body),
-            headers: {
-                cookie: `slnet=${slnetUserToken}`,
-                "Content-Type": "application/json",
-            },
+            headers: { cookie: `slnet=${slnetUserToken}`, ...JSON_HEADERS },
         });
-
-        const text = await response.text();
-        const data = text.length > 0 ? (JSON.parse(text) as T) : ({} as T);
+        const data = await readOptionalJson<T>(response);
 
         if (response.status === 200) {
             return data;
@@ -281,7 +257,6 @@ export class StarLineClient {
             return this.request<T>(url, { method, body, retryOnAuthError: false });
         }
 
-        const errorData = data as { message?: string; codestring?: string };
-        throw new DisplayableError(errorData.message ?? errorData.codestring ?? "API call failed");
+        throw new DisplayableError(apiFailureMessage(data));
     }
 }

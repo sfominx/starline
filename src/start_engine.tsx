@@ -1,3 +1,3 @@
-import defaultDeviceCommand from "./utils/defaultDeviceCommand";
+import { createDefaultDeviceCommand } from "./utils/defaultDeviceCommand";
 
-export default () => defaultDeviceCommand("startEngine");
+export default createDefaultDeviceCommand("startEngine");

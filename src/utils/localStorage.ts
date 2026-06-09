@@ -2,32 +2,28 @@ import { LocalStorage } from "@raycast/api";
 
 import { EOL_MAPPING, SECRETS_LIFETIME_HOURS } from "../starline/constants";
 
-export async function setItemWithLifetime(itemName: string, itemValue: string) {
-    /**
-     * Sets an item in local storage with an expiration time
-     */
+type ExpiringStorageKey = keyof typeof EOL_MAPPING;
 
-    await LocalStorage.setItem(itemName, itemValue);
+const HOUR_MS = 60 * 60 * 1000;
 
-    const expiration = new Date();
-    expiration.setTime(expiration.getTime() + SECRETS_LIFETIME_HOURS[itemName] * 60 * 60 * 1000);
-
-    await LocalStorage.setItem(EOL_MAPPING[itemName], expiration.getTime());
+export async function setItemWithLifetime(key: ExpiringStorageKey, value: string) {
+    await Promise.all([
+        LocalStorage.setItem(key, value),
+        LocalStorage.setItem(EOL_MAPPING[key], Date.now() + SECRETS_LIFETIME_HOURS[key] * HOUR_MS),
+    ]);
 }
 
-export async function getItem(itemName: string): Promise<string | undefined> {
-    const expirationRaw = await LocalStorage.getItem(EOL_MAPPING[itemName]);
+export async function getItem(key: ExpiringStorageKey): Promise<string | undefined> {
+    const [value, expiresAtValue] = await Promise.all([
+        LocalStorage.getItem(key),
+        LocalStorage.getItem(EOL_MAPPING[key]),
+    ]);
+    const expiresAt = Number(expiresAtValue);
 
-    if (expirationRaw === undefined) {
-        return undefined;
+    if (Number.isFinite(expiresAt) && expiresAt >= Date.now()) {
+        return value?.toString();
     }
 
-    const expiration = new Date(parseInt(expirationRaw.toString(), 10));
-
-    if (expiration.getTime() < new Date().getTime()) {
-        return undefined;
-    }
-
-    const value = await LocalStorage.getItem(itemName);
-    return value?.toString();
+    await Promise.all([LocalStorage.removeItem(key), LocalStorage.removeItem(EOL_MAPPING[key])]);
+    return undefined;
 }
