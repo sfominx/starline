@@ -106,7 +106,12 @@ export class StarLine {
         }
     }
 
-    private async login() {
+    async loginWithCaptcha(captchaSid: string, captchaCode: string) {
+        await LocalStorage.removeItem(LOCAL_STORAGE.SLID_USER_TOKEN);
+        return this.login(captchaSid, captchaCode);
+    }
+
+    private async login(captchaSid?: string, captchaCode?: string) {
         /**
          * Login user
          */
@@ -120,6 +125,11 @@ export class StarLine {
             const form = new URLSearchParams();
             form.append("login", this.Login);
             form.append("pass", createHash("sha1").update(this.Password).digest("hex"));
+
+            if (captchaSid && captchaCode) {
+                form.append("captchaSid", captchaSid);
+                form.append("captchaCode", captchaCode);
+            }
 
             const response = await fetch(url, {
                 method: "POST",
@@ -157,7 +167,7 @@ export class StarLine {
                 }
             }
 
-            if ((data.state === 1, data.desc.user_token)) {
+            if (data.state === 1 && data.desc.user_token) {
                 await setItemWithLifetime(LOCAL_STORAGE.SLID_USER_TOKEN, data.desc.user_token);
                 return data.desc.user_token;
             }

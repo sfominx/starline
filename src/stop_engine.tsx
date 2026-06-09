@@ -2,7 +2,7 @@ import { LocalStorage, showToast, Toast } from "@raycast/api";
 import { LOCAL_STORAGE } from "./starline/constants";
 import StarLine from "./starline/api";
 
-async function startEngineCOmmand() {
+async function stopEngineCommand() {
     const defaultDevice = await LocalStorage.getItem(LOCAL_STORAGE.DEFAULT_DEVICE);
 
     if (defaultDevice === undefined) {
@@ -19,4 +19,4 @@ async function startEngineCOmmand() {
     await showToast(Toast.Style.Success, "Engine stopped");
 }
 
-export default startEngineCOmmand;
+export default stopEngineCommand;
