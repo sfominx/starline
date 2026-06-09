@@ -18,6 +18,26 @@ type StarLineCommandBody = Record<string, unknown> & {
 
 type HttpMethod = "get" | "post" | "delete";
 
+type RequestOptions = {
+    retryOnAuthError?: boolean;
+};
+
+function parseSlnetCookie(setCookie: string | null) {
+    if (!setCookie) return undefined;
+
+    const match = setCookie.match(/(?:^|[,;\s])slnet=([^;,\s]+)/);
+    return match?.[1];
+}
+
+function isAuthError(responseStatus: number, data: unknown) {
+    if (responseStatus === 401 || responseStatus === 403) return true;
+
+    const errorData = data as { code?: number; message?: string; codestring?: string };
+    const message = `${errorData.message || ""} ${errorData.codestring || ""}`.toLowerCase();
+
+    return errorData.code === 401 || message.includes("auth") || message.includes("token");
+}
+
 export class StarLine {
     private AppId: string;
 
@@ -40,6 +60,36 @@ export class StarLine {
          * Initialize the API client
          */
         return this;
+    }
+
+    static async clearAuthCache() {
+        await Promise.all(
+            [
+                LOCAL_STORAGE.CAPTCHA_SID,
+                LOCAL_STORAGE.CAPTCHA_IMG,
+                LOCAL_STORAGE.APP_CODE,
+                LOCAL_STORAGE.APP_CODE_EOL,
+                LOCAL_STORAGE.APP_TOKEN,
+                LOCAL_STORAGE.APP_TOKEN_EOL,
+                LOCAL_STORAGE.SLID_USER_TOKEN,
+                LOCAL_STORAGE.SLID_USER_TOKEN_EOL,
+                LOCAL_STORAGE.SLNET_TOKEN,
+                LOCAL_STORAGE.SLNET_TOKEN_EOL,
+                LOCAL_STORAGE.USER_ID,
+            ].map((key) => LocalStorage.removeItem(key)),
+        );
+    }
+
+    async clearAuthCache() {
+        return StarLine.clearAuthCache();
+    }
+
+    private async clearWebApiAuthCache() {
+        await Promise.all([
+            LocalStorage.removeItem(LOCAL_STORAGE.SLNET_TOKEN),
+            LocalStorage.removeItem(LOCAL_STORAGE.SLNET_TOKEN_EOL),
+            LocalStorage.removeItem(LOCAL_STORAGE.USER_ID),
+        ]);
     }
 
     private async getAppCode() {
@@ -209,18 +259,15 @@ export class StarLine {
             const data = (await response.json()) as { user_id: string };
             await LocalStorage.setItem(LOCAL_STORAGE.USER_ID, data.user_id);
 
-            const cookies = response.headers.get("set-cookie");
-            const parsedCookies: { [key: string]: string } = {};
-            if (cookies) {
-                cookies.split(";").forEach((cookie) => {
-                    const [key, value] = cookie.split("=");
-                    parsedCookies[key.trim()] = value;
-                });
+            const slnetUserTokenFromCookie = parseSlnetCookie(response.headers.get("set-cookie"));
+
+            if (!slnetUserTokenFromCookie) {
+                throw new DisplayableError("Failed to parse SLNet token from auth response");
             }
 
-            await setItemWithLifetime(LOCAL_STORAGE.SLNET_TOKEN, parsedCookies.slnet);
+            await setItemWithLifetime(LOCAL_STORAGE.SLNET_TOKEN, slnetUserTokenFromCookie);
 
-            return { userId: data.user_id, slnetUserToken: parsedCookies.slnet };
+            return { userId: data.user_id, slnetUserToken: slnetUserTokenFromCookie };
         }
         return { userId, slnetUserToken };
     }
@@ -229,15 +276,10 @@ export class StarLine {
         /**
          * Get user devices
          */
-        const { userId, slnetUserToken } = await this.auth();
+        const { userId } = await this.auth();
 
         const url = `${DEVELOPER_STARLINE}json/v2/user/${userId}/user_info`;
-        const response = await fetch(url, {
-            headers: {
-                cookie: `slnet=${slnetUserToken}`,
-            },
-        });
-        const data = (await response.json()) as Devices;
+        const data = await this.request<Devices>(url);
 
         if (data) {
             const defaultDevice = Number(
@@ -257,6 +299,7 @@ export class StarLine {
         url: string,
         method: HttpMethod = "get",
         body?: unknown,
+        options: RequestOptions = { retryOnAuthError: true },
     ): Promise<T> {
         /**
          * Make WebAPI call with SLNet cookie auth.
@@ -277,6 +320,11 @@ export class StarLine {
 
         if (response.status === 200) {
             return data;
+        }
+
+        if (options.retryOnAuthError && isAuthError(response.status, data)) {
+            await this.clearWebApiAuthCache();
+            return this.request<T>(url, method, body, { retryOnAuthError: false });
         }
 
         const errorData = data as { message?: string; codestring?: string };

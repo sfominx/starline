@@ -4,6 +4,7 @@ import { Item } from "./types/devices";
 import DevicesItem from "./components/Item";
 import { StarLineProvider, useStarLine } from "./context/starline";
 import DevicesListenersProvider from "./context/devicesListeners";
+import ClearAuthCacheAction from "./components/actions/ClearAuthCache";
 
 function DevicesItemList({ devices }: { devices: Item[] }) {
     return (
@@ -75,6 +76,15 @@ function DeviceComponent() {
 
     return (
         <List searchBarPlaceholder="Search device" isLoading={isLoading}>
+            <List.EmptyView
+                title="No Devices"
+                actions={
+                    <ActionPanel>
+                        <Action title="Reload Devices" onAction={loadItems} />
+                        <ClearAuthCacheAction onCleared={loadItems} />
+                    </ActionPanel>
+                }
+            />
             <DevicesItemList devices={devices} />
         </List>
     );

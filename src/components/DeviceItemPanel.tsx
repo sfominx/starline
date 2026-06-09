@@ -15,6 +15,7 @@ import ServiceModeEnableAction from "./actions/ServiceModeEnable";
 import ServiceModeDisableAction from "./actions/ServiceModeDisable";
 import SetAsDefaultDeviceAction from "./actions/SetAsDefaultDevice";
 import UnsetAsDefaultDeviceAction from "./actions/UnsetAsDefaultDevice";
+import ClearAuthCacheAction from "./actions/ClearAuthCache";
 import CommandAction from "./actions/Command";
 import DeviceApiDetail from "./DeviceApiDetail";
 import DeviceDetails from "./DeviceDetails";
@@ -345,6 +346,7 @@ function DevicesItemActionPanel({ showDetailsAction = true }: { showDetailsActio
             {environment.isDevelopment && (
                 <ActionPanel.Section title="Development">
                     <Action.CopyToClipboard title="Copy Item UUID" content={deviceId} />
+                    <ClearAuthCacheAction />
                 </ActionPanel.Section>
             )}
         </ActionPanel>
