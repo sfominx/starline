@@ -7,6 +7,7 @@
 .raycast-swift-build
 .swiftpm
 compiled_raycast_swift
+raycast-env.d.ts
 
 # misc
 .DS_Store
@@ -17,3 +18,4 @@ CLAUDE.md
 docs/
 tasks/
 STARLINE_API_IMPLEMENTATION_PLAN.md
+.githooks/
