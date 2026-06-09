@@ -16,6 +16,7 @@ import ServiceModeDisableAction from "./actions/ServiceModeDisable";
 import SetAsDefaultDeviceAction from "./actions/SetAsDefaultDevice";
 import UnsetAsDefaultDeviceAction from "./actions/UnsetAsDefaultDevice";
 import CommandAction from "./actions/Command";
+import DeviceApiDetail from "./DeviceApiDetail";
 import DeviceDetails from "./DeviceDetails";
 
 function DevicesItemActionPanel({ showDetailsAction = true }: { showDetailsAction?: boolean }) {
@@ -69,6 +70,83 @@ function DevicesItemActionPanel({ showDetailsAction = true }: { showDetailsActio
                     successMessage="Position update requested"
                 />
                 {isDefault ? <UnsetAsDefaultDeviceAction /> : <SetAsDefaultDeviceAction />}
+            </ActionPanel.Section>
+
+            <ActionPanel.Section title="Device Data">
+                <Action.Push
+                    title="Show Supported Controls"
+                    icon={Icon.List}
+                    target={
+                        <DeviceApiDetail
+                            item={selectedItem}
+                            kind="controls"
+                            title="Supported Controls"
+                        />
+                    }
+                />
+                <Action.Push
+                    title="Show Live State"
+                    icon={Icon.Heartbeat}
+                    target={<DeviceApiDetail item={selectedItem} kind="state" title="Live State" />}
+                />
+                <Action.Push
+                    title="Show Position"
+                    icon={Icon.Map}
+                    target={
+                        <DeviceApiDetail item={selectedItem} kind="position" title="Position" />
+                    }
+                />
+                <Action.Push
+                    title="Show Device Info"
+                    icon={Icon.Info}
+                    target={<DeviceApiDetail item={selectedItem} kind="info" title="Device Info" />}
+                />
+                <Action.Push
+                    title="Show Full Data"
+                    icon={Icon.Document}
+                    target={
+                        <DeviceApiDetail item={selectedItem} kind="data" title="Full Device Data" />
+                    }
+                />
+                <Action.Push
+                    title="Show Summary Report"
+                    icon={Icon.BarChart}
+                    target={
+                        <DeviceApiDetail item={selectedItem} kind="report" title="Summary Report" />
+                    }
+                />
+                <Action.Push
+                    title="Show Settings"
+                    icon={Icon.Gear}
+                    target={
+                        <DeviceApiDetail item={selectedItem} kind="settings" title="Settings" />
+                    }
+                />
+                <Action.Push
+                    title="Show Comfort Options"
+                    icon={Icon.Window}
+                    target={
+                        <DeviceApiDetail
+                            item={selectedItem}
+                            kind="comfortOptions"
+                            title="Comfort Options"
+                        />
+                    }
+                />
+                <Action.Push
+                    title="Show OBD Params"
+                    icon={Icon.Gauge}
+                    target={
+                        <DeviceApiDetail item={selectedItem} kind="obdParams" title="OBD Params" />
+                    }
+                />
+                <Action.Push
+                    title="Show OBD Errors"
+                    icon={Icon.ExclamationMark}
+                    target={
+                        <DeviceApiDetail item={selectedItem} kind="obdErrors" title="OBD Errors" />
+                    }
+                />
             </ActionPanel.Section>
 
             <ActionPanel.Section title="Advanced Commands">
