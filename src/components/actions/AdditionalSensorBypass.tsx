@@ -1,23 +1,14 @@
-import { Action, Icon, Toast, showToast } from "@raycast/api";
-import React from "react";
+import { Icon } from "@raycast/api";
 
-import { StarLine } from "../../starline/api";
-import { useSelectedDeviceItem } from "../context/deviceItem";
+import DeviceCommandAction from "./DeviceCommand";
 
 function AdditionalSensorBypassAction() {
-    const selectedItem = useSelectedDeviceItem();
-
-    const handleAction = async () => {
-        const starline = new StarLine();
-        await starline.additionalSensorBypass(selectedItem.device_id.toString());
-        await showToast(Toast.Style.Success, "Additional sensor bypassed");
-    };
-
     return (
-        <Action
+        <DeviceCommandAction
             title="Additional Sensor Bypass"
             icon={Icon.LivestreamDisabled}
-            onAction={handleAction}
+            successMessage="Additional sensor bypassed"
+            run={(starline, deviceId) => starline.additionalSensorBypass(deviceId)}
         />
     );
 }

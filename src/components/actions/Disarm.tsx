@@ -1,53 +1,26 @@
-import { Action, Alert, Icon, Toast, confirmAlert, showToast } from "@raycast/api";
+import { Alert, Icon } from "@raycast/api";
 
-import { useOptionalDevicesContext } from "../../context/devices";
-import { StarLine } from "../../starline/api";
 import { useSelectedDeviceItem } from "../context/deviceItem";
 
+import DeviceCommandAction, { useUpdateArmState } from "./DeviceCommand";
+
 function DisarmAction() {
-    const selectedItem = useSelectedDeviceItem();
-    const devicesContext = useOptionalDevicesContext();
-
-    const handleAction = async () => {
-        const confirmed = await confirmAlert({
-            title: "Disarm vehicle?",
-            message: "This will disable security mode for the selected device.",
-            primaryAction: {
-                title: "Disarm",
-                style: Alert.ActionStyle.Destructive,
-            },
-        });
-
-        if (!confirmed) {
-            return;
-        }
-
-        const starline = new StarLine();
-        const data = await starline.disarm(selectedItem.device_id.toString());
-        if (devicesContext !== null) {
-            const devices = devicesContext.devices.map((device) => {
-                if (device.device_id === selectedItem.device_id) {
-                    return { ...device, car_state: { ...device.car_state, arm: data.arm === "1" } };
-                }
-                return device;
-            });
-
-            devicesContext.updateState({
-                devices,
-                isLoading: false,
-                captchaNeeded: false,
-            });
-        }
-
-        await showToast(Toast.Style.Success, "Disarmed");
-    };
+    const item = useSelectedDeviceItem();
 
     return (
-        <Action
+        <DeviceCommandAction
             title="Disarm"
             icon={Icon.LockUnlocked}
             shortcut={{ modifiers: ["cmd"], key: "d" }}
-            onAction={handleAction}
+            successMessage="Disarmed"
+            confirmation={{
+                title: "Disarm vehicle?",
+                message: "This will disable security mode for the selected device.",
+                primaryActionTitle: "Disarm",
+                style: Alert.ActionStyle.Destructive,
+            }}
+            run={(starline, deviceId) => starline.disarm(deviceId)}
+            onSuccess={useUpdateArmState(item)}
         />
     );
 }

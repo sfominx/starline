@@ -1,15 +1,14 @@
 import { LocalStorage, Toast, showToast } from "@raycast/api";
-import React, { createContext, useContext, useReducer } from "react";
+import { createContext, useContext, useReducer } from "react";
 
 import { LOCAL_STORAGE } from "../starline/constants";
 import { FailedToLoadDevicesItemsError, getDisplayableErrorMessage } from "../utils/errors";
 import useOnceEffect from "../utils/hooks/useOnceEffect";
 
-import { useDevicesItemPublisher } from "./devicesListeners";
 import { useStarLine } from "./starline";
 
 import type { Devices, Item } from "../types/devices";
-import type { ReactNode } from "react";
+import type { ReactNode, SetStateAction } from "react";
 
 type DevicesState = Devices & {
     isLoading: boolean;
@@ -21,7 +20,7 @@ type DevicesState = Devices & {
 type DevicesContextType = DevicesState & {
     isEmpty: boolean;
     loadItems: () => Promise<void>;
-    updateState: (next: React.SetStateAction<DevicesState>) => void;
+    updateState: (next: SetStateAction<DevicesState>) => void;
     toggleDefault: (item: Item, isDefault: boolean) => void;
 };
 
@@ -44,28 +43,23 @@ const DevicesContext = createContext<DevicesContextType | null>(null);
 export function DevicesProvider(props: DevicesProviderProps) {
     const { children } = props;
     const starline = useStarLine();
-    const publishItems = useDevicesItemPublisher();
-
     const [state, setState] = useReducer(
         (previous: DevicesState, next: Partial<DevicesState>) => ({ ...previous, ...next }),
-        { ...getInitialState(), ...{} },
+        getInitialState(),
     );
 
     async function loadItems() {
         try {
             setState({ isLoading: true });
 
-            let devices: Item[] = [];
-
             try {
-                const [itemsResult] = await Promise.all([starline.getDevices()]);
+                const itemsResult = await starline.getDevices();
+
                 if (itemsResult.error !== undefined) {
                     throw new FailedToLoadDevicesItemsError(itemsResult.error);
                 }
-                if (itemsResult.result !== undefined) {
-                    // console.log(JSON.stringify(itemsResult.result.devices[0].controls, null, "  "));
-                    devices = itemsResult.result.devices;
-                }
+
+                setState({ devices: itemsResult.result?.devices ?? [] });
             } catch (error) {
                 if (error instanceof Error && error.name === "CaptchaNeededError") {
                     setState({
@@ -76,11 +70,8 @@ export function DevicesProvider(props: DevicesProviderProps) {
                     });
                     return;
                 }
-                publishItems(new FailedToLoadDevicesItemsError());
                 throw error;
             }
-            setState({ devices });
-            publishItems(devices);
         } catch (error) {
             await showToast(
                 Toast.Style.Failure,
@@ -93,20 +84,14 @@ export function DevicesProvider(props: DevicesProviderProps) {
     }
 
     function toggleDefault(item: Item, isDefault: boolean) {
-        const newDevices: Item[] = [];
+        const devices = state.devices.map((device) =>
+            device.device_id === item.device_id ? { ...device, default: isDefault } : device,
+        );
 
-        state.devices.forEach((element) => {
-            if (element.device_id === item.device_id) {
-                newDevices.push({ ...element, default: isDefault });
-            } else {
-                newDevices.push(element);
-            }
-        });
-        setState({ ...state, devices: newDevices });
-        publishItems(newDevices);
+        setState({ devices });
     }
 
-    function updateState(next: React.SetStateAction<DevicesState>) {
+    function updateState(next: SetStateAction<DevicesState>) {
         const newState = typeof next === "function" ? next(state) : next;
         setState(newState);
     }

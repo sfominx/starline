@@ -1,27 +1,8 @@
 import { Detail } from "@raycast/api";
-import React from "react";
+
+import { displayString, enabledDisabledLabel, openClosedLabel, statusLabel } from "../utils/format";
 
 import type { Item } from "../types/devices";
-
-function statusLabel(value: boolean | undefined, enabledLabel: string, disabledLabel: string) {
-    if (value === undefined) {
-        return "—";
-    }
-
-    return value ? enabledLabel : disabledLabel;
-}
-
-function openClosedLabel(value: boolean | undefined) {
-    return statusLabel(value, "Открыто", "Закрыто");
-}
-
-function enabledDisabledLabel(value: boolean | undefined) {
-    return statusLabel(value, "Включено", "Выключено");
-}
-
-function displayString(value: string | undefined) {
-    return value !== undefined && value.length > 0 ? value : "—";
-}
 
 function formatDate(value: string | undefined) {
     if (value === undefined || value.length === 0) {

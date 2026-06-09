@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 import DevicesLoadingFallback from "../components/DevicesLoadingFallback";
 import { StarLine } from "../starline/api";

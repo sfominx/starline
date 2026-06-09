@@ -1,19 +1,13 @@
-import { Action, Toast, showToast } from "@raycast/api";
-import React from "react";
-
-import { StarLine } from "../../starline/api";
-import { useSelectedDeviceItem } from "../context/deviceItem";
+import DeviceCommandAction from "./DeviceCommand";
 
 function ServiceModeEnableAction() {
-    const selectedItem = useSelectedDeviceItem();
-
-    const handleAction = async () => {
-        const starline = new StarLine();
-        await starline.serviceModeEnable(selectedItem.device_id.toString());
-        await showToast(Toast.Style.Success, "Service mode enabled");
-    };
-
-    return <Action title="Enable Service Mode" onAction={handleAction} />;
+    return (
+        <DeviceCommandAction
+            title="Enable Service Mode"
+            successMessage="Service mode enabled"
+            run={(starline, deviceId) => starline.serviceModeEnable(deviceId)}
+        />
+    );
 }
 
 export default ServiceModeEnableAction;

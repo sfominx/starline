@@ -1,8 +1,10 @@
-import { Action, Alert, Icon, Toast, confirmAlert, showToast } from "@raycast/api";
-import React from "react";
+import { type Alert, Icon } from "@raycast/api";
 
-import { StarLine } from "../../starline/api";
 import { useSelectedDeviceItem } from "../context/deviceItem";
+
+import DeviceCommandAction from "./DeviceCommand";
+
+import type { Item } from "../../types/devices";
 
 type CommandActionProps = {
     title: string;
@@ -19,6 +21,15 @@ type CommandActionProps = {
     requireSupported?: boolean;
 };
 
+function isCommandSupported(command: string, item: Item) {
+    const supportedCommands = new Set([
+        ...item.functions,
+        ...item.controls.map((control) => control.type),
+    ]);
+
+    return supportedCommands.size === 0 || supportedCommands.has(command);
+}
+
 function CommandAction(props: CommandActionProps) {
     const {
         title,
@@ -29,52 +40,23 @@ function CommandAction(props: CommandActionProps) {
         confirmation,
         requireSupported = true,
     } = props;
-    const selectedItem = useSelectedDeviceItem();
+    const item = useSelectedDeviceItem();
 
-    const supportedCommands = new Set<string>([
-        ...selectedItem.functions,
-        ...selectedItem.controls.map((control) => control.type),
-    ]);
-
-    if (requireSupported && supportedCommands.size > 0 && !supportedCommands.has(command)) {
+    if (requireSupported && !isCommandSupported(command, item)) {
         return null;
     }
 
-    const handleAction = async () => {
-        if (confirmation !== undefined) {
-            const confirmed = await confirmAlert({
-                title: confirmation.title,
-                message: confirmation.message,
-                primaryAction: {
-                    title: confirmation.primaryActionTitle ?? title,
-                    style: confirmation.style ?? Alert.ActionStyle.Default,
-                },
-            });
-
-            if (!confirmed) {
-                return;
+    return (
+        <DeviceCommandAction
+            title={title}
+            icon={icon}
+            successMessage={successMessage}
+            confirmation={confirmation}
+            run={(starline, deviceId) =>
+                starline.sendCommandWithAsyncFallback(deviceId, command, value)
             }
-        }
-
-        const toast = await showToast(Toast.Style.Animated, title);
-
-        try {
-            const starline = new StarLine();
-            await starline.sendCommandWithAsyncFallback(
-                selectedItem.device_id.toString(),
-                command,
-                value,
-            );
-            toast.style = Toast.Style.Success;
-            toast.title = successMessage;
-        } catch (error) {
-            toast.style = Toast.Style.Failure;
-            toast.title = "Command failed";
-            toast.message = error instanceof Error ? error.message : "Unknown error";
-        }
-    };
-
-    return <Action title={title} icon={icon} onAction={handleAction} />;
+        />
+    );
 }
 
 export default CommandAction;

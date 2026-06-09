@@ -19,6 +19,9 @@ type AsyncCommandOptions = {
     timeoutMs?: number;
 };
 
+const DEFAULT_POLL_INTERVAL_MS = 2_000;
+const DEFAULT_COMMAND_TIMEOUT_MS = 30_000;
+
 function sleep(ms: number) {
     return new Promise((resolve) => {
         setTimeout(resolve, ms);
@@ -79,8 +82,8 @@ export class StarLineCommands extends StarLineClient {
         commandId: string,
         options: AsyncCommandOptions = {},
     ) {
-        const intervalMs = options.intervalMs ?? 2_000;
-        const timeoutMs = options.timeoutMs ?? 30_000;
+        const intervalMs = options.intervalMs ?? DEFAULT_POLL_INTERVAL_MS;
+        const timeoutMs = options.timeoutMs ?? DEFAULT_COMMAND_TIMEOUT_MS;
         const deadline = Date.now() + timeoutMs;
 
         while (Date.now() <= deadline) {

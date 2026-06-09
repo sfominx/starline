@@ -15,7 +15,7 @@ export async function setItemWithLifetime(itemName: string, itemValue: string) {
     await LocalStorage.setItem(EOL_MAPPING[itemName], expiration.getTime());
 }
 
-export async function getItem(itemName: string) {
+export async function getItem(itemName: string): Promise<string | undefined> {
     const expirationRaw = await LocalStorage.getItem(EOL_MAPPING[itemName]);
 
     if (expirationRaw === undefined) {
@@ -28,5 +28,6 @@ export async function getItem(itemName: string) {
         return undefined;
     }
 
-    return LocalStorage.getItem(itemName);
+    const value = await LocalStorage.getItem(itemName);
+    return value?.toString();
 }

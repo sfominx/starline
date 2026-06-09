@@ -1,7 +1,8 @@
 import { Detail, Toast, showToast } from "@raycast/api";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useStarLine } from "../context/starline";
+import { enabledDisabledLabel, statusLabel } from "../utils/format";
 
 import type { Item } from "../types/devices";
 import type {
@@ -14,7 +15,7 @@ import type {
     ObdParamsResponse,
 } from "../types/starline";
 
-type DeviceApiDetailKind =
+export type DeviceApiDetailKind =
     | "controls"
     | "info"
     | "position"
@@ -36,6 +37,8 @@ type DeviceApiDetailProps = {
     title: string;
 };
 
+const DEFAULT_HISTORY_HOURS = 24;
+
 function formatJson(value: unknown) {
     return `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``;
 }
@@ -49,18 +52,6 @@ function formatUnixTimestamp(value?: number | string) {
         return value.toString();
     }
     return new Date(timestamp * 1000).toLocaleString();
-}
-
-function statusLabel(value: boolean | undefined, enabledLabel: string, disabledLabel: string) {
-    if (value === undefined) {
-        return "—";
-    }
-
-    return value ? enabledLabel : disabledLabel;
-}
-
-function enabledDisabledLabel(value: boolean | undefined) {
-    return statusLabel(value, "Включено", "Выключено");
 }
 
 function formatControls(data: ControlsLibraryResponse) {
@@ -168,7 +159,7 @@ function DeviceApiDetail(props: DeviceApiDetailProps) {
                 setIsLoading(true);
                 const deviceId = item.device_id.toString();
                 let data: unknown;
-                const { periodStart, periodEnd } = lastHoursPeriod(24);
+                const { periodStart, periodEnd } = lastHoursPeriod(DEFAULT_HISTORY_HOURS);
 
                 switch (kind) {
                     case "controls":

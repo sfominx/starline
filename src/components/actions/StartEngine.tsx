@@ -1,36 +1,20 @@
-import { Action, Icon, Toast, confirmAlert, showToast } from "@raycast/api";
-import React from "react";
+import { Icon } from "@raycast/api";
 
-import { StarLine } from "../../starline/api";
-import { useSelectedDeviceItem } from "../context/deviceItem";
+import DeviceCommandAction from "./DeviceCommand";
 
 function StartEngineAction() {
-    const selectedItem = useSelectedDeviceItem();
-
-    const handleAction = async () => {
-        const confirmed = await confirmAlert({
-            title: "Start engine?",
-            message: "Make sure it is safe to start the engine remotely.",
-            primaryAction: {
-                title: "Start Engine",
-            },
-        });
-
-        if (!confirmed) {
-            return;
-        }
-
-        const starline = new StarLine();
-        await starline.startEngine(selectedItem.device_id.toString());
-        await showToast(Toast.Style.Success, "Engine started");
-    };
-
     return (
-        <Action
+        <DeviceCommandAction
             title="Start Engine"
             icon={Icon.Play}
             shortcut={{ modifiers: ["cmd"], key: "return" }}
-            onAction={handleAction}
+            successMessage="Engine started"
+            confirmation={{
+                title: "Start engine?",
+                message: "Make sure it is safe to start the engine remotely.",
+                primaryActionTitle: "Start Engine",
+            }}
+            run={(starline, deviceId) => starline.startEngine(deviceId)}
         />
     );
 }

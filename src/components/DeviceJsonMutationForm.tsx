@@ -8,13 +8,13 @@ import {
     popToRoot,
     showToast,
 } from "@raycast/api";
-import React, { useState } from "react";
+import { useState } from "react";
 
 import { useStarLine } from "../context/starline";
 
 import type { Item } from "../types/devices";
 
-type DeviceJsonMutationKind =
+export type DeviceJsonMutationKind =
     | "deviceInfo"
     | "controls"
     | "comfortOptions"

@@ -1,37 +1,21 @@
-import { Action, Alert, Icon, Toast, confirmAlert, showToast } from "@raycast/api";
-import React from "react";
+import { Alert, Icon } from "@raycast/api";
 
-import { StarLine } from "../../starline/api";
-import { useSelectedDeviceItem } from "../context/deviceItem";
+import DeviceCommandAction from "./DeviceCommand";
 
 function StopEngineAction() {
-    const selectedItem = useSelectedDeviceItem();
-
-    const handleAction = async () => {
-        const confirmed = await confirmAlert({
-            title: "Stop engine?",
-            message: "This will stop the engine remotely.",
-            primaryAction: {
-                title: "Stop Engine",
-                style: Alert.ActionStyle.Destructive,
-            },
-        });
-
-        if (!confirmed) {
-            return;
-        }
-
-        const starline = new StarLine();
-        await starline.stopEngine(selectedItem.device_id.toString());
-        await showToast(Toast.Style.Success, "Engine stopped");
-    };
-
     return (
-        <Action
+        <DeviceCommandAction
             title="Stop Engine"
             icon={Icon.Stop}
             shortcut={{ modifiers: ["cmd"], key: "s" }}
-            onAction={handleAction}
+            successMessage="Engine stopped"
+            confirmation={{
+                title: "Stop engine?",
+                message: "This will stop the engine remotely.",
+                primaryActionTitle: "Stop Engine",
+                style: Alert.ActionStyle.Destructive,
+            }}
+            run={(starline, deviceId) => starline.stopEngine(deviceId)}
         />
     );
 }
