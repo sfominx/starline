@@ -46,7 +46,7 @@ function CommandAction(props: CommandActionProps) {
                 title: confirmation.title,
                 message: confirmation.message,
                 primaryAction: {
-                    title: confirmation.primaryActionTitle || title,
+                    title: confirmation.primaryActionTitle ?? title,
                     style: confirmation.style ?? Alert.ActionStyle.Default,
                 },
             });

@@ -58,7 +58,16 @@ function boolLabel(value: unknown) {
     if (typeof value === "boolean") {
         return value ? "Yes" : "No";
     }
-    return String(value);
+    if (typeof value === "string") {
+        return value;
+    }
+    if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+        return value.toString();
+    }
+    if (typeof value === "symbol") {
+        return value.description ?? "symbol";
+    }
+    return JSON.stringify(value);
 }
 
 function formatControls(data: ControlsLibraryResponse) {
@@ -78,7 +87,7 @@ function formatState(data: DeviceStateResponse) {
 function formatPosition(data: DevicePositionResponse) {
     const position = data.device.position;
 
-    return `| Field | Value |\n| --- | --- |\n| Latitude | ${position.lat || "—"} |\n| Longitude | ${position.lon || "—"} |\n| Precision | ${position.pres || "—"} m |\n| Timestamp | ${position.ts || "—"} |`;
+    return `| Field | Value |\n| --- | --- |\n| Latitude | ${position.lat ?? "—"} |\n| Longitude | ${position.lon ?? "—"} |\n| Precision | ${position.pres ?? "—"} m |\n| Timestamp | ${position.ts ?? "—"} |`;
 }
 
 function formatEvents(data: DeviceEventsResponse) {
@@ -89,28 +98,28 @@ function formatEvents(data: DeviceEventsResponse) {
         )
         .join("\n");
 
-    return `| Time | Group | Type |\n| --- | --- | --- |\n${events || "| — | — | — |"}`;
+    return `| Time | Group | Type |\n| --- | --- | --- |\n${events.length > 0 ? events : "| — | — | — |"}`;
 }
 
 function formatObdParams(data: ObdParamsResponse) {
     const params = data.obd_params;
 
-    return `| Field | Value | Timestamp |\n| --- | --- | --- |\n| Fuel | ${params?.fuel?.val ?? "—"} ${params?.fuel?.type || ""} | ${formatUnixTimestamp(params?.fuel?.ts)} |\n| Errors | ${params?.errors?.val ?? "—"} | ${formatUnixTimestamp(params?.errors?.ts)} |\n| Mileage | ${params?.mileage?.val ?? "—"} km | ${formatUnixTimestamp(params?.mileage?.ts)} |\n\nMinimum firmware: ${data.requirements?.min_version || "—"}`;
+    return `| Field | Value | Timestamp |\n| --- | --- | --- |\n| Fuel | ${params?.fuel?.val ?? "—"} ${params?.fuel?.type ?? ""} | ${formatUnixTimestamp(params?.fuel?.ts)} |\n| Errors | ${params?.errors?.val ?? "—"} | ${formatUnixTimestamp(params?.errors?.ts)} |\n| Mileage | ${params?.mileage?.val ?? "—"} km | ${formatUnixTimestamp(params?.mileage?.ts)} |\n\nMinimum firmware: ${data.requirements?.min_version ?? "—"}`;
 }
 
 function formatObdErrors(data: ObdErrorsResponse) {
     const errors = data.obd_errors
         .map(
             (error) =>
-                `| ${error.error || "—"} | ${formatUnixTimestamp(error.error_ts)} | ${error.warning_level ?? "—"} | ${error.descriptions?.en || error.descriptions?.ru || "—"} |`,
+                `| ${error.error ?? "—"} | ${formatUnixTimestamp(error.error_ts)} | ${error.warning_level ?? "—"} | ${error.descriptions?.en ?? error.descriptions?.ru ?? "—"} |`,
         )
         .join("\n");
 
-    return `| Error | Time | Warning | Description |\n| --- | --- | --- | --- |\n${errors || "| No errors | — | — | — |"}`;
+    return `| Error | Time | Warning | Description |\n| --- | --- | --- | --- |\n${errors.length > 0 ? errors : "| No errors | — | — | — |"}`;
 }
 
 function formatSettings(data: DeviceSettingsResponse) {
-    return `## General\n\n| Field | Value |\n| --- | --- |\n| Device ID | ${data.device_id} |\n| Name | ${data.general?.name || "—"} |\n| Phone | ${data.general?.tel || "—"} |\n| IMEI | ${data.general?.imei || "—"} |\n| Firmware | ${data.general?.fw_version || "—"} |\n\n## Raw Setting Sections\n\n${formatJson(
+    return `## General\n\n| Field | Value |\n| --- | --- |\n| Device ID | ${data.device_id} |\n| Name | ${data.general?.name ?? "—"} |\n| Phone | ${data.general?.tel ?? "—"} |\n| IMEI | ${data.general?.imei ?? "—"} |\n| Firmware | ${data.general?.fw_version ?? "—"} |\n\n## Raw Setting Sections\n\n${formatJson(
         {
             webasto: data.webasto,
             monitoring: data.monitoring,
@@ -136,7 +145,13 @@ function formatTypedData(kind: DeviceApiDetailKind, data: unknown) {
             return formatObdErrors(data as ObdErrorsResponse);
         case "settings":
             return formatSettings(data as DeviceSettingsResponse);
-        default:
+        case "info":
+        case "data":
+        case "report":
+        case "comfortOptions":
+        case "ways":
+        case "drivingScore":
+        case "drivingScoreHistory":
             return formatJson(data);
     }
 }

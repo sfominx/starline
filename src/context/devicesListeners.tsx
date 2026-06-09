@@ -3,12 +3,12 @@ import React, { createContext, useContext, useRef } from "react";
 import { FailedToLoadDevicesItemsError } from "../utils/errors";
 
 import type { Item } from "../types/devices";
-import type { MutableRefObject, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 type ItemListener = (item: Item | FailedToLoadDevicesItemsError) => void;
 
 type DevicesListenersContextType = {
-    listeners: MutableRefObject<Map<string, ItemListener>>;
+    listeners: { current: Map<string, ItemListener> };
     subscribeItem: (itemId: string, listener: ItemListener) => () => void;
     publishItems: (items: Item[] | FailedToLoadDevicesItemsError) => void;
 };

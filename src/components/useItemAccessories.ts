@@ -42,7 +42,7 @@ export default function useItemAccessories(item: Item) {
         }
 
         return accessories;
-    } catch (error) {
+    } catch {
         return [];
     }
 }

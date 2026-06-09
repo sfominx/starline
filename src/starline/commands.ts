@@ -35,8 +35,10 @@ function getAsyncCommandErrorMessage(response: AsyncCommandResponse) {
             return "Device response timeout";
         case 6:
             return "Command status expired on server";
-        default:
-            return response.codestring || "Async command failed";
+        case 0:
+        case 1:
+        case 2:
+            return response.codestring;
     }
 }
 
@@ -129,7 +131,7 @@ export class StarLineCommands extends StarLineClient {
     ) {
         try {
             return (await this.sendAsyncCommandAndWait(deviceId, type, value, options)) as T;
-        } catch (error) {
+        } catch {
             return this.sendCommand<T>(deviceId, type, value);
         }
     }

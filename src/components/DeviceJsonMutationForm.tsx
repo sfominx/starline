@@ -44,7 +44,7 @@ function DeviceJsonMutationForm(props: DeviceJsonMutationFormProps) {
 
         try {
             parsedBody = JSON.parse(body);
-        } catch (error) {
+        } catch {
             await showToast(Toast.Style.Failure, "Invalid JSON", "Please check request body");
             return;
         }

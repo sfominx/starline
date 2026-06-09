@@ -21,7 +21,7 @@ function parseSlnetCookie(setCookie: string | null) {
         return undefined;
     }
 
-    const match = setCookie.match(/(?:^|[,;\s])slnet=([^;,\s]+)/);
+    const match = /(?:^|[,;\s])slnet=([^;,\s]+)/.exec(setCookie);
     return match?.[1];
 }
 
@@ -31,7 +31,7 @@ function isAuthError(responseStatus: number, data: unknown) {
     }
 
     const errorData = data as { code?: number; message?: string; codestring?: string };
-    const message = `${errorData.message || ""} ${errorData.codestring || ""}`.toLowerCase();
+    const message = `${errorData.message ?? ""} ${errorData.codestring ?? ""}`.toLowerCase();
 
     return errorData.code === 401 || message.includes("auth") || message.includes("token");
 }
@@ -125,7 +125,7 @@ export class StarLineClient {
         const appToken = await getItem(LOCAL_STORAGE.APP_TOKEN);
         if (appToken === undefined) {
             const secretHash = createHash("md5")
-                .update(this.Secret + appCode)
+                .update(this.Secret + appCode.toString())
                 .digest("hex");
             const args = `appId=${this.AppId}&secret=${secretHash}`;
             const url = `${ID_STARLINE}apiV3/application/getToken?${args}`;
@@ -299,6 +299,6 @@ export class StarLineClient {
         }
 
         const errorData = data as { message?: string; codestring?: string };
-        throw new DisplayableError(errorData.message || errorData.codestring || "API call failed");
+        throw new DisplayableError(errorData.message ?? errorData.codestring ?? "API call failed");
     }
 }
