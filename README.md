@@ -38,6 +38,5 @@ The extension does not persist StarLine bearer tokens or cookies in Raycast Loca
 
 ## Limitations
 
-- See `STARLINE_API_IMPLEMENTATION_PLAN.md` for endpoint coverage, documented exclusions, and remaining non-goals.
 - Settings mutation forms currently use raw JSON mode; typed forms are planned for a future release.
 - Real device behavior can vary by firmware and supported controls.
